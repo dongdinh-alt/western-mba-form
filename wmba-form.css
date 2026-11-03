@@ -1,0 +1,465 @@
+/* Western MBA – PSO · Form ứng tuyển
+   Giao diện theo PSO Design System "Royal Paper" v1, biến thể xám/trắng, chữ deep #260841, nhấn đỏ WSU #660916.
+   Mọi selector nằm dưới .wmba để không đụng CSS khác trên trang. */
+
+/* ---------- Font: PSO Google Sans Flex ---------- */
+@font-face { font-family: "PSO Google Sans Flex"; src: url("assets/fonts/PSO_GoogleSansFlex-Light.otf") format("opentype"); font-weight: 300; font-display: swap; }
+@font-face { font-family: "PSO Google Sans Flex"; src: url("assets/fonts/PSO_GoogleSansFlex-SemiBold.otf") format("opentype"); font-weight: 600; font-display: swap; }
+/* Regular 400: chưa có file PSO, dùng Google Sans Flex 400 (vietnamese / latin-ext / latin) */
+@font-face { font-family: "PSO Google Sans Flex"; font-weight: 400; font-display: swap; src: url(https://fonts.gstatic.com/s/googlesansflex/v23/t5sJIQcYNIWbFgDgAAzZ34auoVyXkJCOvp3SFWJbN5hF8Ju1x6sKCyp0l9sI40swNJwInycYAJzz0m7kJ4qFQOJBOjLvDSndo0SKMpKSTzwliVdHAy4bxTDHg_ugnAakp8ub-cNgUqDEIULcjrCO.woff2) format("woff2"); unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB; }
+@font-face { font-family: "PSO Google Sans Flex"; font-weight: 400; font-display: swap; src: url(https://fonts.gstatic.com/s/googlesansflex/v23/t5sJIQcYNIWbFgDgAAzZ34auoVyXkJCOvp3SFWJbN5hF8Ju1x6sKCyp0l9sI40swNJwInycYAJzz0m7kJ4qFQOJBOjLvDSndo0SKMpKSTzwliVdHAy4bxTDHg_ugnAakp8ub-cJgUqDEIULcjrCO.woff2) format("woff2"); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "PSO Google Sans Flex"; font-weight: 400; font-display: swap; src: url(https://fonts.gstatic.com/s/googlesansflex/v23/t5sJIQcYNIWbFgDgAAzZ34auoVyXkJCOvp3SFWJbN5hF8Ju1x6sKCyp0l9sI40swNJwInycYAJzz0m7kJ4qFQOJBOjLvDSndo0SKMpKSTzwliVdHAy4bxTDHg_ugnAakp8ub-cxgUqDEIULcjg.woff2) format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+.wmba {
+  /* Base */
+  --canvas: #F5F5F5;
+  --lift: #FFFFFF;
+  --depth: #EDEDED;
+  --ink: #260841;         /* chữ: deep thay cho đen */
+  --brand: #660916;       /* nhấn (nút, viền chọn, link): đỏ WSU */
+  --brand-dark: #4A0610;  /* hover nút chính */
+  --brand-wash: #F7ECEE;  /* nền ô đang chọn */
+  /* Ink ladder */
+  --ink-88: rgba(38, 8, 65, .88);
+  --ink-64: rgba(38, 8, 65, .64);
+  --ink-48: rgba(38, 8, 65, .48);
+  --ink-32: rgba(38, 8, 65, .32);
+  --ink-16: rgba(38, 8, 65, .16);
+  --ink-8: rgba(38, 8, 65, .08);
+  --ink-4: rgba(38, 8, 65, .04);
+  /* Light ladder */
+  --light-88: rgba(255, 255, 255, .88);
+  --light-64: rgba(255, 255, 255, .64);
+  --light-8: rgba(255, 255, 255, .08);
+  /* Washes + semantic */
+  --light-blue: #E4E4E4;   /* hover / đang chọn: xám */
+  --violet-wash: #EFEFEF;  /* khối thông tin: xám nhạt */
+  --success: #2E9E6B;
+  --warning: #C98A1B;
+  --error: #F7323F;
+  /* Type, radius, motion */
+  --f-sans: "PSO Google Sans Flex", "Google Sans Flex", "Google Sans", system-ui, -apple-system, sans-serif;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --d-base: .3s;
+  --d-button: .635s;
+  --e-out: cubic-bezier(.25, .46, .45, .94);
+  --e-in-out: cubic-bezier(.645, .045, .355, 1);
+
+  font-family: var(--f-sans);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+  color: var(--ink);
+  background: var(--canvas);
+  min-height: 100vh;
+  padding: 8px 0 0;
+  -webkit-font-smoothing: antialiased;
+}
+body { margin: 0; background: #F5F5F5; }
+.wmba *, .wmba *::before, .wmba *::after { box-sizing: border-box; }
+.wmba [hidden] { display: none !important; }
+.wmba a { color: var(--brand); text-underline-offset: 2px; }
+.wmba ::selection { background: var(--light-blue); }
+.wmba :focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+/* Tiêu đề chỉ nhận focus bằng script (để trình đọc màn hình đọc), không cần viền */
+.wmba h2[tabindex="-1"]:focus, .wmba [data-summary]:focus { outline: none; }
+.wmba-wrap { max-width: 912px; margin: 0 auto; padding: 0 16px; }
+
+/* Eyebrow: label-1 */
+.wmba-step-kicker {
+  font-size: 13px; line-height: 16px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-64);
+}
+
+/* ---------- Banner ảnh (thay header) ----------
+   Tỉ lệ cố định 1424:280; từ viewport 1440px trở lên giữ cố định 1424×280 (1440 trừ lề 8px mỗi bên). */
+.wmba-banner { position: relative; width: calc(100% - 16px); max-width: 1424px; aspect-ratio: 1424 / 340; margin: 0 auto; border-radius: var(--r-lg); background: var(--brand-dark); color: #fff; overflow: hidden; isolation: isolate; }
+.wmba-banner-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; z-index: -2; }
+/* Lớp phủ Deep Purple để chữ trắng đọc được trên ảnh */
+.wmba-banner::after { content: ""; position: absolute; inset: 0; z-index: -1; background:
+  linear-gradient(to top, rgba(74, 6, 16, .9) 0%, rgba(102, 9, 22, .5) 45%, rgba(102, 9, 22, .12) 75%),
+  linear-gradient(to bottom, rgba(74, 6, 16, .62) 0%, rgba(102, 9, 22, .25) 28%, rgba(102, 9, 22, 0) 45%); }
+.wmba-banner-in { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: clamp(20px, 2.8vw, 40px) clamp(20px, 3.4vw, 48px); }
+/* Hai logo cùng chiều cao: Western MBA bên trái, PSO bên phải */
+.wmba-logos { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+.wmba-logo { display: block; height: clamp(18px, 1.8vw, 26px); width: auto; }
+.wmba-logo.is-pso { filter: brightness(0) invert(1); }
+.wmba-banner h1 { margin: 0; font-size: clamp(26px, 2.8vw, 40px); line-height: 1.1; font-weight: 600; letter-spacing: -.035em; }
+
+.wmba-tools { display: flex; justify-content: flex-end; align-items: center; gap: 16px; min-height: 40px; margin-top: 24px; font-size: 14px; line-height: 20px; letter-spacing: .01em; color: var(--ink-64); }
+.wmba-save:not(:empty)::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--success); margin-right: 8px; vertical-align: middle; }
+
+/* ---------- Stepper (underline tabs) ---------- */
+.wmba-stepper { position: sticky; top: var(--wmba-sticky-top, 0px); z-index: 20; margin: 0 0 24px; padding: 16px 0 0; background: var(--canvas); }
+.wmba-stepper ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.wmba-step-btn { width: 100%; padding: 0 0 14px; border: 0; border-bottom: 2px solid var(--ink-8); background: none; font: inherit; color: var(--ink-48); text-align: left; cursor: default; transition: color var(--d-base), border-color var(--d-base); }
+.wmba-step-btn .bar { display: none; }
+.wmba-step-btn .num { display: block; font-size: 11px; line-height: 12px; font-weight: 600; letter-spacing: .12em; margin-bottom: 6px; }
+.wmba-step-btn .name { display: block; font-size: 14px; line-height: 16px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wmba-step-btn.is-done { color: var(--ink-64); border-bottom-color: var(--ink-16); cursor: pointer; }
+.wmba-step-btn.is-done:hover { color: var(--ink); border-bottom-color: var(--ink-32); }
+.wmba-step-btn.is-current { color: var(--ink); border-bottom-color: var(--brand); }
+.wmba-step-btn.is-current .name { font-weight: 600; }
+.wmba-mstep { display: none; }
+.wmba-mstep p { margin: 0 0 10px; font-size: 14px; line-height: 20px; font-weight: 600; }
+.wmba-mstep .track { height: 2px; background: var(--ink-8); }
+.wmba-mstep .track i { display: block; height: 100%; background: var(--brand); transition: width .5s var(--e-out); }
+
+/* ---------- Card ---------- */
+.wmba-card { background: var(--lift); border-radius: var(--r-lg); padding: 40px; }
+.wmba-card + .wmba-card { margin-top: 16px; }
+.wmba-card h2 { margin: 8px 0 8px; font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: -.02em; outline: none; }
+.wmba-lead { margin: 0 0 32px; color: var(--ink-64); }
+.wmba-card h3 { margin: 0 0 12px; font-size: 16px; line-height: 24px; font-weight: 600; }
+.wmba-subh { margin: 24px 0 0 !important; padding-top: 24px; border-top: 1px solid var(--ink-8); font-size: 17px !important; line-height: 24px !important; letter-spacing: -.01em; }
+
+.wmba-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px 16px; }
+.wmba-w-full { grid-column: span 12; }
+.wmba-w-half { grid-column: span 6; }
+.wmba-w-third { grid-column: span 4; }
+.wmba-w-twothird { grid-column: span 8; }
+.wmba-w-quarter { grid-column: span 3; }
+
+/* ---------- Fields ---------- */
+.wmba-field { min-width: 0; border: 0; margin: 0; padding: 0; }
+.wmba-label { display: block; font-size: 14px; line-height: 20px; font-weight: 600; margin-bottom: 8px; padding: 0; }
+.wmba-req { color: var(--error); margin-right: 4px; font-weight: 600; }
+.wmba-opt { font-weight: 400; color: var(--ink-64); margin-left: 6px; }
+.wmba-help { margin: 8px 0 0; font-size: 14px; line-height: 20px; letter-spacing: .01em; color: var(--ink-64); }
+.wmba-note { margin: -2px 0 8px; font-size: 14px; line-height: 20px; color: var(--brand); }
+.wmba-mini { font-size: 13px; line-height: 18px; color: var(--ink-64); }
+
+/* Input: Depth fill, viền trong suốt, 8px, focus ink-32, lỗi Electric Red */
+.wmba-input {
+  width: 100%; font: inherit; font-size: 16px; line-height: 24px; color: var(--ink);
+  background: var(--depth); border: 1px solid transparent; border-radius: var(--r-md);
+  padding: 12px 16px; min-height: 48px; transition: border-color var(--d-base), background-color var(--d-base);
+}
+.wmba-input:hover { border-color: var(--ink-16); }
+.wmba-input:focus { outline: none; border-color: var(--ink-32); background-color: #E4E4E4; }
+textarea.wmba-input { resize: vertical; min-height: 96px; }
+textarea.wmba-input.is-essay { min-height: 168px; }
+.wmba-select-btn { display: block; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 40px; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%23260841' stroke-opacity='.64' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; }
+.wmba-input::placeholder { color: var(--ink-64); }
+.has-err > .wmba-input, .has-err .wmba-parts .wmba-input, .has-err .wmba-period .wmba-input { border-color: var(--error); }
+.wmba-err { margin: 8px 0 0; font-size: 13px; line-height: 18px; color: var(--error); }
+.wmba-err:empty { display: none; }
+
+.wmba-parts { display: grid; grid-template-columns: 1fr 1.3fr 1.2fr; gap: 8px; }
+.wmba-pair { display: grid; grid-template-columns: 1fr 1.1fr; gap: 8px; }
+
+/* Lựa chọn: ô ink-4, chọn → Light Blue + viền Royal Purple */
+.wmba-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.wmba-choices.is-stack { display: grid; }
+.wmba-choice { display: inline-flex; align-items: flex-start; gap: 12px; min-height: 48px; padding: 12px 16px; border: 1px solid transparent; border-radius: var(--r-md); background: var(--ink-4); cursor: pointer; transition: background var(--d-base), border-color var(--d-base); }
+.wmba-choice:hover { background: var(--ink-8); }
+.wmba-choice:has(input:checked) { background: var(--brand-wash); border-color: var(--brand); }
+.wmba-choice:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: 3px; }
+.wmba-choice input { margin: 4px 0 0; accent-color: var(--brand); width: 16px; height: 16px; flex: none; }
+.wmba-choice input:focus-visible { outline: none; }
+.wmba-choice-label { display: block; }
+.wmba-choice-desc { display: block; font-size: 14px; line-height: 20px; color: var(--ink-64); }
+.has-err .wmba-choice { border-color: rgba(247, 50, 63, .5); }
+.wmba-checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+.wmba-check-inline { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; line-height: 20px; }
+.wmba-check-inline input { accent-color: var(--brand); width: 16px; height: 16px; }
+
+/* Khung giờ phỏng vấn (Q10) */
+.wmba-slots { border-collapse: separate; border-spacing: 8px; margin-left: -8px; }
+.wmba-slots th { font-size: 11px; line-height: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-64); text-align: left; padding: 0 4px; }
+.wmba-slots td { padding: 0; }
+.wmba-slot { display: flex; align-items: center; justify-content: center; width: 136px; height: 48px; border: 1px solid transparent; border-radius: var(--r-md); background: var(--ink-4); cursor: pointer; transition: background var(--d-base), border-color var(--d-base); }
+.wmba-slot:hover { background: var(--ink-8); }
+.wmba-slot:has(input:checked) { background: var(--brand-wash); border-color: var(--brand); }
+.wmba-slot:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: 3px; }
+.wmba-slot input { accent-color: var(--brand); width: 18px; height: 18px; }
+.wmba-slot input:focus-visible { outline: none; }
+
+/* Giai đoạn công tác */
+.wmba-period { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; align-items: end; }
+.wmba-period-part > .wmba-mini { display: block; margin-bottom: 6px; }
+.wmba-period .wmba-check-inline { grid-column: 2; }
+.wmba-now { display: flex; align-items: center; min-height: 48px; padding: 0 16px; border-radius: var(--r-md); background: var(--light-blue); font-weight: 600; }
+
+/* Gợi ý động */
+.wmba-dyn:empty { display: none; }
+.wmba-dyn { margin-top: 8px; font-size: 14px; line-height: 20px; display: grid; gap: 8px; }
+.wmba-hint { color: var(--ink-64); }
+.wmba-hint b { color: var(--ink); font-weight: 600; }
+.wmba-warn { display: block; margin: 8px 0 0; padding: 10px 12px; border-radius: var(--r-md); background: rgba(201, 138, 27, .1); color: #7A5310; font-size: 14px; line-height: 20px; }
+.wmba-counter { text-align: right; color: var(--ink-64); font-size: 13px; font-variant-numeric: tabular-nums; }
+.wmba-counter.is-near { color: #7A5310; }
+.wmba-counter.is-over { color: var(--error); font-weight: 600; }
+
+/* Repeater: mỗi dòng thụt vào, viền trái để thấy rõ là một nhóm */
+.wmba-row { margin-top: 16px; padding: 4px 0 4px 20px; border-left: 2px solid var(--ink-16); transition: border-color var(--d-base) var(--e-out); }
+.wmba-row:focus-within { border-left-color: var(--ink); }
+.wmba-row + .wmba-row { margin-top: 32px; }
+.wmba-row-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 16px; }
+.wmba-row-title { font-size: 16px; line-height: 24px; font-weight: 600; color: var(--ink); }
+.wmba-row-empty { padding: 16px; border-radius: var(--r-lg); background: var(--ink-4); color: var(--ink-64); font-size: 14px; line-height: 20px; }
+.wmba-repeater > .wmba-help { margin: -4px 0 12px; }
+.wmba-add { margin-top: 24px; font: inherit; font-size: 14px; line-height: 16px; font-weight: 600; color: var(--ink); background: var(--ink-8); border: 0; border-radius: var(--r-md); padding: 12px 16px; min-height: 40px; cursor: pointer; transition: background var(--d-base); }
+.wmba-add:hover { background: var(--light-blue); }
+.wmba-remove { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 14px; line-height: 20px; color: var(--ink-64); background: none; border: 0; border-radius: var(--r-sm); padding: 6px 8px; margin-right: -8px; cursor: pointer; transition: color var(--d-base) var(--e-out), background-color var(--d-base) var(--e-out); }
+.wmba-remove:hover { color: var(--error); background: rgba(247, 50, 63, .07); }
+.wmba-link { font: inherit; font-size: 14px; color: var(--brand); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Callout: Violet Wash */
+.wmba-info { background: var(--violet-wash); border-radius: var(--r-lg); padding: 24px; font-size: 15px; line-height: 22px; }
+.wmba-info > strong:first-child { display: block; font-size: 13px; line-height: 16px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--brand); }
+.wmba-info strong { font-weight: 600; }
+.wmba-info ol, .wmba-info ul { margin: 12px 0 0; padding-left: 20px; }
+.wmba-info li + li { margin-top: 6px; }
+.wmba-info p { margin: 0; font-size: 14px; line-height: 20px; color: var(--ink-64); }
+
+.wmba-alert { border-radius: var(--r-lg); padding: 16px 20px; margin-bottom: 24px; font-size: 14px; line-height: 20px; outline: none; }
+.wmba-alert.is-err { background: rgba(247, 50, 63, .07); color: var(--ink); }
+.wmba-alert.is-err p { margin: 0 0 6px; font-weight: 600; color: #C41F2A; }
+.wmba-alert ul { margin: 0; padding-left: 20px; }
+.wmba-alert.is-err a { color: var(--ink); }
+
+/* Cam kết */
+.wmba-consents { padding: 20px 24px; border-radius: var(--r-lg); background: var(--ink-4); display: grid; gap: 4px; }
+.wmba-consent { display: flex; gap: 12px; align-items: flex-start; padding: 6px 0; cursor: pointer; }
+.wmba-consent input { margin-top: 4px; accent-color: var(--brand); width: 17px; height: 17px; flex: none; }
+.wmba-consents .wmba-err { margin: 0 0 4px 29px; }
+.wmba-hp { position: absolute !important; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+
+
+/* Ngày sinh: 3 ô gõ số */
+.wmba-datepick { position: relative; }
+.wmba-datepick .wmba-input { padding-right: 48px; font-variant-numeric: tabular-nums; }
+.wmba-datepick-btn { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--ink-64); cursor: pointer; }
+.wmba-datepick-btn:hover { background: var(--light-blue); color: var(--ink); }
+.wmba-combo .wmba-input:disabled { cursor: not-allowed; opacity: .56; }
+.has-err .wmba-phone .wmba-input, .has-err .wmba-datepick .wmba-input, .has-err .wmba-combo .wmba-input { border-color: var(--error); }
+
+/* Số di động có mã quốc gia */
+.wmba-phone { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 8px; }
+
+/* Combobox */
+.wmba-combo { position: relative; }
+.wmba-combo .wmba-input { padding-right: 40px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Ccircle cx='7' cy='7' r='4.5' stroke='%23260841' stroke-opacity='.64' stroke-width='1.5' fill='none'/%3E%3Cpath d='M10.5 10.5L14 14' stroke='%23260841' stroke-opacity='.64' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
+.wmba-combo-list { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; right: 0; max-height: 280px; overflow-y: auto; margin: 0; padding: 6px; list-style: none; background: var(--lift); border: 1px solid var(--ink-16); border-radius: var(--r-md); box-shadow: rgba(38, 8, 65, .08) 0 4px 40px 0; }
+.wmba-combo-list li { padding: 10px 12px; border-radius: var(--r-sm); cursor: pointer; }
+.wmba-combo-list li:hover, .wmba-combo-list li.is-active { background: var(--light-blue); }
+.wmba-combo-list li[aria-selected="true"] { font-weight: 600; }
+.wmba-combo-list li.is-empty { color: var(--ink-64); cursor: default; background: none; }
+
+/* Dropdown tự vẽ: dùng chung khung danh sách với combobox, dấu check kiểu shadcn */
+.wmba-select { position: relative; min-width: 0; }
+.wmba-select-btn.is-ph { color: var(--ink-64); }
+.wmba-select-btn[aria-expanded="true"] { border-color: var(--ink-32); background-color: #E4E4E4; }
+.has-err .wmba-select-btn { border-color: var(--error); }
+.wmba-select-native { position: absolute; width: 1px; height: 1px; padding: 0; border: 0; opacity: 0; pointer-events: none; }
+.wmba-select-list { min-width: 100%; right: auto; }
+.wmba-phone .wmba-select-list { min-width: 240px; }
+.wmba-select-list li { position: relative; padding-right: 36px; white-space: nowrap; }
+.wmba-select-list li[aria-selected="true"]::after { content: ""; position: absolute; right: 12px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' stroke='%23660916' stroke-width='1.75' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center; }
+.wmba-combo-list.is-up, .wmba-cal.is-up { top: auto; bottom: calc(100% + 4px); }
+
+/* Lịch chọn ngày (popover) */
+.wmba-cal { position: absolute; z-index: 30; top: calc(100% + 4px); right: 0; width: 304px; max-width: calc(100vw - 32px); padding: 12px; background: var(--lift); border: 1px solid var(--ink-16); border-radius: var(--r-md); box-shadow: rgba(38, 8, 65, .08) 0 4px 40px 0; }
+.wmba-cal button { font: inherit; color: var(--ink); background: transparent; border: 0; border-radius: var(--r-sm); cursor: pointer; transition: background-color var(--d-base); }
+.wmba-cal button:hover:not(:disabled) { background: var(--light-blue); }
+.wmba-cal button:focus-visible { outline: 2px solid var(--brand); outline-offset: 0; }
+.wmba-cal button:disabled { color: var(--ink-32); cursor: not-allowed; }
+.wmba-cal button[aria-pressed="true"]:not(.wmba-cal-title), .wmba-cal button[aria-pressed="true"]:not(.wmba-cal-title):hover { background: var(--brand); color: #fff; }
+.wmba-cal-head { display: flex; align-items: center; justify-content: space-between; gap: 4px; min-height: 32px; margin-bottom: 8px; }
+.wmba-cal-titles { display: flex; gap: 2px; }
+.wmba-cal-caption { flex: 1; text-align: center; font-size: 15px; font-weight: 600; }
+.wmba-cal-nav { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; color: var(--ink-64) !important; }
+.wmba-cal-title { display: inline-flex; align-items: center; gap: 2px; height: 32px; padding: 0 6px 0 10px; font-size: 15px !important; font-weight: 600; }
+.wmba-cal-title svg { color: var(--ink-64); }
+.wmba-cal-week, .wmba-cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.wmba-cal-week span { font-size: 12px; line-height: 28px; text-align: center; color: var(--ink-64); }
+.wmba-cal-days button { height: 38px; padding: 0; font-size: 14px; font-variant-numeric: tabular-nums; }
+.wmba-cal-days button.is-today { box-shadow: inset 0 0 0 1px var(--ink-16); }
+.wmba-cal-grid { display: grid; gap: 4px; }
+.wmba-cal-grid.is-months { grid-template-columns: repeat(3, 1fr); }
+.wmba-cal-grid.is-years { grid-template-columns: repeat(4, 1fr); max-height: 248px; overflow-y: auto; position: relative; }
+.wmba-cal-grid button { height: 40px; font-size: 14px; font-variant-numeric: tabular-nums; }
+
+/* Thẻ chọn lớn (học bổng Yes/No) */
+.wmba-choices.is-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.wmba-choices.is-cards .wmba-choice { padding: 20px; min-height: 104px; }
+.wmba-choices.is-cards .wmba-choice-label { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+
+/* Bài luận: tag trạng thái từng câu (màu success) */
+.wmba-essay { padding-top: 24px; border-top: 1px solid var(--ink-8); }
+.wmba-essay-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
+.wmba-essay-num { font-size: 11px; line-height: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-64); }
+.wmba-tag { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: var(--r-sm); font-size: 12px; font-weight: 600; letter-spacing: .04em; white-space: nowrap; }
+.wmba-tag.is-todo { background: var(--ink-8); color: var(--ink-64); }
+.wmba-tag.is-done { background: rgba(46, 158, 107, .14); color: #1C6B47; }
+.wmba-tag.is-over { background: rgba(247, 50, 63, .1); color: #C41F2A; }
+
+
+/* Chuyển bước: mờ dần (không trượt) */
+@keyframes wmba-fade { from { opacity: 0; } to { opacity: 1; } }
+.wmba-main.is-entering > * { animation: wmba-fade .3s var(--e-out) both; }
+
+/* ---------- Buttons ---------- */
+.wmba-nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--ink-8); }
+.wmba-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  font: inherit; font-size: 15px; line-height: 20px; font-weight: 600;
+  border-radius: var(--r-md); padding: 12px 20px; min-height: 44px; cursor: pointer;
+  border: 1px solid transparent; transition: background var(--d-base), color var(--d-base), border-color var(--d-base);
+}
+/* Primary: Royal Purple → Light Blue, mũi tên trượt vào khi hover */
+.wmba-btn.is-primary, .wmba-btn.is-accent { background: var(--brand); color: #fff; border-color: var(--light-8); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+.wmba-btn.is-primary::after, .wmba-btn.is-accent::after {
+  content: ""; display: inline-block; width: 0; height: 16px; overflow: hidden; transform: translateX(-2rem); opacity: 0;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M2 8h11M9 4l4 4-4 4' stroke='%23000' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right center / 16px 16px;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M2 8h11M9 4l4 4-4 4' stroke='%23000' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right center / 16px 16px;
+  transition: width var(--d-button) var(--e-in-out), transform var(--d-button) var(--e-in-out), opacity var(--d-base);
+}
+.wmba-btn.is-primary:hover:not(:disabled), .wmba-btn.is-accent:hover:not(:disabled) { background: var(--brand-dark); color: #fff; border-color: transparent; }
+.wmba-btn.is-primary:hover:not(:disabled)::after, .wmba-btn.is-accent:hover:not(:disabled)::after { width: 24px; transform: none; opacity: 1; }
+/* Secondary: ink-8 → Light Blue */
+.wmba-btn.is-ghost, .wmba-btn.is-secondary { background: var(--ink-8); color: var(--ink); }
+.wmba-btn.is-ghost:hover, .wmba-btn.is-secondary:hover { background: var(--light-blue); }
+.wmba-btn:disabled { opacity: .5; cursor: not-allowed; }
+.wmba-btn.is-small { font-size: 14px; line-height: 16px; padding: 12px 16px; min-height: 40px; }
+
+/* ---------- Upload ---------- */
+.wmba-doc-group + .wmba-doc-group { margin-top: 32px; }
+.wmba-doc-group > h3 { font-size: 13px !important; line-height: 16px !important; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-64); margin-bottom: 12px !important; }
+.wmba-doc { padding: 20px 0; border-top: 1px solid var(--ink-8); }
+.wmba-doc.has-err .wmba-drop { border-color: var(--error); }
+.wmba-doc-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.wmba-doc-title { font-weight: 600; }
+.wmba-doc .wmba-help { margin-top: 4px; }
+.wmba-doc-meta { flex: none; display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: var(--r-sm); background: var(--ink-8); font-size: 12px; font-weight: 600; letter-spacing: .04em; color: var(--ink-88); white-space: nowrap; }
+.wmba-drop { position: relative; margin-top: 16px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 20px; border: 1px dashed var(--ink-32); border-radius: var(--r-md); background: var(--ink-4); text-align: center; cursor: pointer; transition: background var(--d-base), border-color var(--d-base); }
+.wmba-drop > span:first-of-type { font-size: 15px; font-weight: 600; color: var(--brand); }
+.wmba-drop:hover, .wmba-drop.is-over { background: var(--brand-wash); border-color: var(--brand); }
+.wmba-drop:focus-within { outline: 2px solid var(--brand); outline-offset: 3px; }
+.wmba-drop input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.wmba-files { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 8px; }
+.wmba-files:empty { display: none; }
+.wmba-file { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--r-md); background: var(--ink-4); }
+.wmba-file-icon { flex: none; width: 40px; height: 40px; border-radius: var(--r-md); display: grid; place-items: center; font-size: 10px; font-weight: 600; letter-spacing: .04em; color: var(--brand); background: var(--violet-wash); }
+.wmba-file-icon.is-pdf { color: #fff; background: var(--brand); }
+.wmba-file-main { flex: 1; min-width: 0; }
+.wmba-file-name { display: block; font-size: 14px; line-height: 20px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wmba-file-sub { display: block; font-size: 13px; line-height: 18px; color: var(--ink-64); }
+.wmba-file.is-done .wmba-file-sub { color: var(--success); }
+.wmba-file.is-error .wmba-file-sub { color: var(--error); }
+.wmba-bar { display: block; height: 2px; background: var(--ink-8); margin-top: 6px; overflow: hidden; }
+.wmba-bar > span { display: block; height: 100%; background: var(--brand); transition: width .12s linear; }
+.wmba-file.is-done .wmba-bar { display: none; }
+
+/* ---------- Intro ---------- */
+/* Card đầu tiên: nút bắt đầu / tiếp tục bản nháp */
+.wmba-launch { display: flex; flex-direction: column; align-items: center; gap: 24px; padding: 40px; text-align: center; }
+.wmba-launch h2 { margin-top: 0 !important; }
+.wmba-launch .wmba-lead { margin: 0; }
+.wmba-launch > div:first-child { max-width: 560px; }
+.wmba-launch-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.wmba-list { margin: 0; padding-left: 20px; }
+.wmba-list li + li { margin-top: 10px; }
+.wmba-list .wmba-mini { display: block; }
+
+/* ---------- Review ---------- */
+.wmba-rv-sec { border-radius: var(--r-lg); background: var(--ink-4); overflow: hidden; }
+.wmba-rv-sec + .wmba-rv-sec { margin-top: 12px; }
+.wmba-rv-sec header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 24px; border-bottom: 1px solid var(--ink-8); }
+.wmba-rv-sec h3 { margin: 0 !important; font-size: 16px; }
+.wmba-rv-sec header button { font: inherit; font-size: 14px; line-height: 16px; font-weight: 600; color: var(--ink); background: var(--ink-8); border: 0; border-radius: var(--r-md); padding: 8px 14px; cursor: pointer; transition: background var(--d-base); }
+.wmba-rv-sec header button:hover { background: var(--light-blue); }
+.wmba-badge { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; margin-left: 10px; border-radius: var(--r-sm); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; vertical-align: 2px; }
+.wmba-badge.is-ok { background: var(--brand-wash); color: var(--brand); }
+.wmba-badge.is-err { background: rgba(247, 50, 63, .1); color: #C41F2A; }
+.wmba-rv { margin: 0; padding: 8px 24px 16px; }
+.wmba-rv-row { display: grid; grid-template-columns: minmax(150px, 34%) minmax(0, 1fr); gap: 4px 16px; padding: 8px 0; }
+.wmba-rv-row + .wmba-rv-row { border-top: 1px solid var(--ink-8); }
+.wmba-rv-row dt { color: var(--ink-64); font-size: 14px; line-height: 20px; }
+.wmba-rv-row dd { margin: 0; font-size: 15px; line-height: 22px; min-width: 0; overflow-wrap: anywhere; }
+.wmba-rv-sub { border-left: 2px solid var(--ink-16); padding: 0 0 4px 14px; }
+.wmba-rv-sub + .wmba-rv-sub { margin-top: 8px; }
+.wmba-rv-sub .wmba-rv { padding: 0; }
+.wmba-rv-subtitle { font-size: 11px; line-height: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-64); padding-top: 10px; }
+.wmba-pre { white-space: pre-wrap; }
+.wmba-empty { color: var(--ink-64); }
+.wmba-ok-text { color: var(--success); }
+.wmba-err-text { color: var(--error); }
+
+/* ---------- Done ---------- */
+.wmba-done { text-align: center; padding: 56px 32px; }
+.wmba-done-icon { width: 56px; height: 56px; border-radius: 50%; background: var(--brand-wash); color: var(--brand); display: grid; place-items: center; margin: 0 auto 16px; }
+.wmba-done h2 { font-size: 28px !important; line-height: 34px !important; letter-spacing: -.025em !important; max-width: 560px; margin: 0 auto 16px !important; }
+.wmba-code { display: inline-block; font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: .02em; color: var(--brand); background: var(--brand-wash); padding: 12px 24px; border-radius: var(--r-md); margin: 8px 0 20px; font-variant-numeric: tabular-nums; }
+.wmba-done > p { color: var(--ink-88); max-width: 560px; margin-left: auto; margin-right: auto; }
+.wmba-done > p.wmba-code-label { margin-top: 0; margin-bottom: 0; color: var(--ink-64); }
+.wmba-timeline { text-align: left; max-width: 520px; margin: 40px auto 0; padding: 0; list-style: none; counter-reset: s; }
+.wmba-timeline li { position: relative; padding: 0 0 20px 44px; counter-increment: s; }
+.wmba-timeline li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: var(--r-md); background: var(--ink-8); font-size: 13px; font-weight: 600; display: grid; place-items: center; }
+.wmba-timeline li::after { content: ""; position: absolute; left: 14px; top: 32px; bottom: 4px; width: 1px; background: var(--ink-8); }
+.wmba-timeline li:last-child::after { display: none; }
+.wmba-timeline b { display: block; font-weight: 600; }
+.wmba-timeline span { font-size: 14px; line-height: 20px; color: var(--ink-64); }
+.wmba-print-area { display: none; }
+
+/* ---------- Footer ---------- */
+.wmba-footer { max-width: 880px; margin: 64px auto 0; padding: 20px 0 40px; border-top: 1px solid var(--ink-8); font-size: 11px; line-height: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-64); text-align: center; }
+.wmba-footer a { color: var(--ink-64); }
+
+/* ---------- Dialog ---------- */
+.wmba-dialog { border: 0; border-radius: 12px; padding: 32px; max-width: 460px; width: calc(100% - 32px); color: #260841; font-family: "PSO Google Sans Flex", "Google Sans Flex", system-ui, sans-serif; box-shadow: rgba(38, 8, 65, .08) 0 4px 80px 0; }
+.wmba-dialog::backdrop { background: rgba(0, 0, 0, .48); }
+.wmba-dialog h3 { margin: 0 0 8px; font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -.02em; }
+.wmba-dialog p { margin: 0 0 24px; color: rgba(38, 8, 65, .64); }
+.wmba-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.wmba-dialog .wmba-btn { font-family: inherit; font-size: 15px; font-weight: 600; border-radius: 8px; padding: 12px 20px; border: 0; cursor: pointer; }
+.wmba-dialog .wmba-btn.is-ghost { background: rgba(38, 8, 65, .08); color: #260841; }
+.wmba-dialog .wmba-btn.is-primary { background: #660916; color: #fff; }
+.wmba-dialog .wmba-btn.is-ghost:hover { background: #E4E4E4; color: #260841; }
+.wmba-dialog .wmba-btn.is-primary:hover { background: #4A0610; }
+
+
+/* ---------- Responsive ---------- */
+@media (max-width: 760px) {
+  .wmba-stepper ol { display: none; }
+  .wmba-mstep { display: block; }
+}
+@media (max-width: 640px) {
+  .wmba-card { padding: 24px 20px; }
+  /* Điện thoại: tỉ lệ 2:1 để đủ chỗ cho tiêu đề */
+  .wmba-banner { aspect-ratio: 2 / 1; }
+  .wmba-card h2 { font-size: 20px; line-height: 26px; }
+  .wmba-w-half, .wmba-w-third, .wmba-w-twothird { grid-column: span 12; }
+  .wmba-w-quarter { grid-column: span 6; }
+  .wmba-rv { padding: 8px 16px 12px; }
+  .wmba-rv-sec header { padding: 12px 16px; }
+  .wmba-rv-row, .wmba-rv-sub .wmba-rv-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .wmba-period { grid-template-columns: 1fr; }
+  .wmba-period .wmba-check-inline { grid-column: 1; }
+  .wmba-slot { width: auto; min-width: 88px; }
+  .wmba-doc-head { flex-direction: column; gap: 8px; }
+  .wmba-nav { position: sticky; bottom: 0; z-index: 15; margin: 32px -20px -24px; padding: 12px 20px; background: var(--lift); border-radius: 0 0 var(--r-lg) var(--r-lg); box-shadow: 0 -1px 0 var(--ink-8); }
+  .wmba-nav .wmba-btn { flex: 1; }
+  .wmba-launch { padding: 24px 20px; }
+  .wmba-launch-actions, .wmba-launch-actions .wmba-btn { width: 100%; }
+  .wmba-launch-actions { flex-direction: column-reverse; }
+  .wmba-choices.is-cards { grid-template-columns: 1fr; }
+  .wmba-done h2 { font-size: 24px !important; line-height: 30px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wmba *, .wmba *::before, .wmba *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+/* ---------- Print: bản tóm tắt hồ sơ ---------- */
+.wmba-print-only { display: none; }
+@media print {
+  body, .wmba { background: #fff; padding: 0; }
+  .wmba-banner, .wmba-tools, .wmba-stepper, .wmba-main, .wmba-footer { display: none !important; }
+  .wmba-print-area { display: block; }
+  .wmba-print-area .wmba-card { padding: 0; }
+  .wmba-screen-only { display: none; }
+  .wmba-print-only { display: inline; }
+}

@@ -1,0 +1,4 @@
+.vercel
+.DS_Store
+# Font của brand: không đưa lên repo (vẫn deploy lên Vercel từ máy)
+assets/fonts/
