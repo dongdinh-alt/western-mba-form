@@ -113,6 +113,10 @@ body { margin: 0; background: #F5F5F5; }
 .wmba-lead { margin: 0 0 32px; color: var(--ink-64); }
 .wmba-card h3 { margin: 0 0 12px; font-size: 16px; line-height: 24px; font-weight: 600; }
 .wmba-subh { margin: 24px 0 0 !important; padding-top: 24px; border-top: 1px solid var(--ink-8); font-size: 17px !important; line-height: 24px !important; letter-spacing: -.01em; }
+/* Repeater dạng mục lớn (Degrees, Professional certificates): legend mang style tiêu đề mục */
+legend.wmba-subh { float: left; width: 100%; margin-bottom: 16px !important; padding-left: 0; padding-right: 0; font-weight: 600; }
+legend.wmba-subh + * { clear: both; }
+.wmba-grid > .wmba-repeater:first-child > legend.wmba-subh { margin-top: 0 !important; padding-top: 0; border-top: 0; }
 
 .wmba-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px 16px; }
 .wmba-w-full { grid-column: span 12; }

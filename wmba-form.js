@@ -409,7 +409,7 @@
       lead: ['Bắt đầu từ bằng cao nhất.', 'Start with your highest degree.'],
       fields: [
         {
-          code: 'S01', label: ['Bằng cấp', 'Degrees'], type: 'repeater', min: 1, rowTitle: ['Bằng', 'Degree'], addLabel: ['Thêm bằng cấp', 'Add another degree'], fields: [
+          code: 'S01', label: ['Bằng cấp', 'Degrees'], section: true, type: 'repeater', min: 1, rowTitle: ['Bằng', 'Degree'], addLabel: ['Thêm bằng cấp', 'Add another degree'], fields: [
             { key: 'level', code: 'S01_level', width: 'half', label: ['Bậc', 'Level'], type: 'select', options: [{ v: 'high_school', label: ['Tốt nghiệp THPT', 'High school diploma'] }, { v: 'bachelor', label: ['Tốt nghiệp Đại học', "Bachelor's degree"] }, { v: 'master', label: ['Thạc sĩ', "Master's degree"] }], required: true },
             { key: 'year', code: 'S01_year', width: 'half', label: ['Năm tốt nghiệp', 'Graduation year'], type: 'select', options: yearOpts, required: true },
             { key: 'major', code: 'S01_major', width: 'half', label: ['Chuyên ngành', 'Major'], type: 'text', required: true, show: row => row.level !== 'high_school' },
@@ -417,7 +417,7 @@
           ],
         },
         {
-          code: 'S02', label: ['Chứng chỉ chuyên môn', 'Professional certificates'], optional: true, type: 'repeater', min: 0, rowTitle: ['Chứng chỉ', 'Certificate'], addLabel: ['Thêm chứng chỉ', 'Add certificate'],
+          code: 'S02', label: ['Chứng chỉ chuyên môn', 'Professional certificates'], section: true, optional: true, type: 'repeater', min: 0, rowTitle: ['Chứng chỉ', 'Certificate'], addLabel: ['Thêm chứng chỉ', 'Add certificate'],
           empty: ['Bỏ qua nếu không có. Khi đã thêm, vui lòng điền đủ các trường.', 'Skip if not applicable. Once added, all fields are required.'], fields: [
             { key: 'name', code: 'S02_name', width: 'twothird', label: ['Tên chứng chỉ', 'Certificate name'], type: 'text', required: true,  },
             { key: 'year', code: 'S02_year', width: 'third', label: ['Năm', 'Year'], type: 'select', options: yearOpts, required: true },
@@ -750,6 +750,7 @@
   function labelHTML(f, row, forId, tag = 'label') {
     const req = isRequired(f, row);
     const inner = `${req ? '<span class="wmba-req" aria-hidden="true">*</span>' : ''}${esc(tx(f.label))}${!req && f.optional ? `<span class="wmba-opt">${tx(OPTIONAL)}</span>` : ''}`;
+    if (tag === 'section') return `<legend class="wmba-subh">${inner}</legend>`;   // repeater hiển thị như một mục lớn
     return tag === 'legend' ? `<legend class="wmba-label">${inner}</legend>` : `<label class="wmba-label" for="${forId}">${inner}</label>`;
   }
 
@@ -855,7 +856,7 @@
               ${rows.length > f.min ? `<button type="button" class="wmba-remove" data-action="remove-row" data-path="${path}" data-index="${i}" aria-label="${esc(`${tx(['Xoá', 'Remove'])} ${tx(f.rowTitle)} ${i + 1}`)}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.5 4h11M6.5 4V2.75h3V4M4 4l.6 8.6c.05.8.7 1.4 1.5 1.4h3.8c.8 0 1.45-.6 1.5-1.4L12 4M6.75 7v4.25M9.25 7v4.25" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>${tx(['Xoá', 'Remove'])}</button>` : ''}</div>
             <div class="wmba-grid">${f.fields.map(sf => renderField(sf, { row: r, prefix: `${path}.${i}` })).join('')}</div>
           </div>`).join('') : `<div class="wmba-row-empty">${esc(tx(f.empty))}</div>`;
-        return `<fieldset class="wmba-field wmba-repeater ${w}${err ? ' has-err' : ''}" data-field="${path}">${labelHTML(f, ctx.row, id, 'legend')}${help}${body}
+        return `<fieldset class="wmba-field wmba-repeater ${w}${err ? ' has-err' : ''}" data-field="${path}">${labelHTML(f, ctx.row, id, f.section ? 'section' : 'legend')}${help}${body}
           <button type="button" class="wmba-add" id="${id}" data-action="add-row" data-path="${path}">+ ${esc(tx(f.addLabel))}</button>${errEl}</fieldset>`;
       }
     }
