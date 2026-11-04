@@ -76,8 +76,19 @@
     fetch(`${CONFIG.assetsUrl}vn-wards.json`).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
       WARDS = d;
       const el = document.getElementById('wmba-A05');   // chỉ cập nhật gợi ý, không vẽ lại cả bước đang điền
-      if (el && el.dataset.comboInput && state.A04 === 'VN' && state.A02) el.placeholder = tx(['Gõ để tìm…', 'Start typing to search…']);
-    }).catch(() => { wardsFailed = true; if (typeof view === 'number' && document.getElementById('wmba-A05')) render(); });   // lỗi tải: cho nhập tay
+      if (el && el.dataset.comboInput && state.A04 === 'VN' && state.A02) {
+        el.placeholder = tx(['Gõ để tìm…', 'Start typing to search…']);
+        const cur = wardsOf(state.A02).find(o => o.v === state.A05);   // bước vẽ trước khi tải xong: điền lại tên phường đã lưu
+        if (cur && !el.value) el.value = tx(cur.label);
+      }
+    }).catch(() => {   // lỗi tải: cho nhập tay
+      wardsFailed = true;
+      if (typeof view !== 'number' || !document.getElementById('wmba-A05')) return;
+      const a = document.activeElement, keep = a && mainEl.contains(a) && a.id;
+      render();
+      const again = keep && document.getElementById(keep);
+      if (again) again.focus({ preventScroll: true });
+    });
   }
 
   const COUNTRY_CODES = ('AF AL DZ AD AO AG AR AM AU AT AZ BS BH BD BB BY BE BZ BJ BT BO BA BW BR BN BG BF BI CV KH CM CA ' +
@@ -210,7 +221,7 @@
   // State
   // ---------------------------------------------------------------------------
   const blankRow = {
-    S01: () => ({ level: '', year: '', major: '', school: '' }),
+    S01: () => ({ level: '', year: '', major: '', major_other: '', school: '' }),
     S02: () => ({ name: '', year: '', issuer: '' }),
     W01: () => ({ period: { from: { m: '', y: '' }, to: { m: '', y: '' }, current: false }, company: '', title: '', industry: '', size: '', level: '', reports: '', desc: '' }),
     L02: () => ({ lang: '', speak: '', read: '', write: '' }),
@@ -271,6 +282,14 @@
   };
   const scoreRule = scaleRule(false);
   const subRule = scaleRule(true);
+  // IELTS: Overall là trung bình 4 kỹ năng, nên 4 kỹ năng không thể cùng cao hơn Overall
+  const overallRule = v => {
+    const e = scoreRule(v);
+    if (e || !isIelts()) return e;
+    const subs = Object.values(state.S06).map(parseNum);
+    return subs.every(n => !isNaN(n)) && subs.every(n => n > parseNum(v))
+      ? ['Điểm Overall không khớp: cả 4 kỹ năng đều cao hơn Overall', 'Overall score doesn’t match: all four sub-scores are higher than the overall score.'] : '';
+  };
   const phoneRule = v => /^\+?\d{9,15}$/.test(String(v).replace(/[\s.\-()]/g, '')) ? '' : M.phone;
 
   // Số di động {cc, num}. Với +84: số 10 chữ số bắt đầu bằng 0 tự bỏ số 0 (0912052459 → 912052459).
@@ -329,6 +348,12 @@
   ];
   const YEARS_PAST = range(NOW_Y, NOW_Y - 50);
   const yearOpts = YEARS_PAST.map(n => ({ v: String(n), label: String(n) }));
+  // Chuyên ngành (S01): danh sách chung; nhóm Master chỉ hiện khi Bậc = Thạc sĩ; "Other" cuối danh sách → nhập tay
+  const toOpts = list => list.split('|').map(v => ({ v, label: v }));
+  const MAJORS = toOpts('Business Administration|Accounting|Auditing|Finance|Banking|Financial Technology (FinTech)|Economics|International Business|International Economics / Trade|Marketing|Digital Marketing|Human Resource Management|Logistics & Supply Chain Management|Hospitality & Tourism Management|E-commerce|Entrepreneurship|Real Estate|Insurance & Actuarial Science|Information Technology|Computer Science|Software Engineering|Information Systems / Management Information Systems|Data Science / Business Analytics|Artificial Intelligence|Cybersecurity|Mechanical Engineering|Electrical & Electronics Engineering|Civil Engineering / Construction|Industrial & Systems Engineering|Chemical Engineering|Automotive Engineering|Architecture|Environmental Engineering|Mathematics / Statistics|Physics|Chemistry|Biology / Biotechnology|Food Technology|Agriculture|Medicine|Pharmacy|Nursing|Dentistry|Public Health|Law|Economic / Business Law|International Relations|Political Science / Public Administration|Psychology|Sociology|Journalism & Communication|Public Relations|English Language / Linguistics|Other Foreign Languages|Education / Teaching|Graphic Design / Fine Arts|Fashion Design|Music / Performing Arts');
+  const MASTER_MAJORS = toOpts('Master of Business Administration (MBA)|Executive MBA (EMBA)|Master of Management|Master of Finance|Master of Accounting|Master of Marketing|Master of Data Science / Business Analytics');
+  const MAJOR_OTHER = { v: 'other', label: ['Khác (vui lòng ghi rõ)', 'Other (please specify)'] };
+  const majorOpts = row => [...MAJORS, ...(!row || row.level === 'master' ? MASTER_MAJORS : []), MAJOR_OTHER];   // không có row (trang Review): đủ danh sách
   const OPTIONAL = ['(không bắt buộc)', '(optional)'];
 
   const ESSAYS = [
@@ -412,8 +437,10 @@
           code: 'S01', label: ['Bằng cấp', 'Degrees'], section: true, type: 'repeater', min: 1, rowTitle: ['Bằng', 'Degree'], addLabel: ['Thêm bằng cấp', 'Add another degree'], fields: [
             { key: 'level', code: 'S01_level', width: 'half', label: ['Bậc', 'Level'], type: 'select', options: [{ v: 'high_school', label: ['Tốt nghiệp THPT', 'High school diploma'] }, { v: 'bachelor', label: ['Tốt nghiệp Đại học', "Bachelor's degree"] }, { v: 'master', label: ['Thạc sĩ', "Master's degree"] }], required: true },
             { key: 'year', code: 'S01_year', width: 'half', label: ['Năm tốt nghiệp', 'Graduation year'], type: 'select', options: yearOpts, required: true },
-            { key: 'major', code: 'S01_major', width: 'half', label: ['Chuyên ngành', 'Major'], type: 'text', required: true, show: row => row.level !== 'high_school' },
+            { key: 'major', code: 'S01_major', width: 'half', label: ['Chuyên ngành', 'Major'], type: 'combo', options: majorOpts, rerender: true, required: true, show: row => row.level !== 'high_school',
+              validate: (v, row) => majorOpts(row).some(o => o.v === v) ? '' : ['Vui lòng chọn chuyên ngành trong danh sách', 'Please select a major from the list.'] },
             { key: 'school', code: 'S01_school', width: 'half', label: ['Trường', 'School / University'], type: 'text', required: true,  },
+            { key: 'major_other', code: 'S01_major_other', width: 'half', label: ['Chuyên ngành khác', 'Please specify your major'], type: 'text', required: true, show: row => row.level !== 'high_school' && row.major === 'other' },
           ],
         },
         {
@@ -434,7 +461,7 @@
             { v: 'none', label: ['Chưa thi', 'Not yet taken'] },
           ],
         },
-        { code: 'S05', width: 'half', label: ['Điểm tổng (Overall)', 'Overall score'], type: 'number', required: true, show: hasCert, help: () => hasCert() ? SCALES[state.S03].help : '', validate: scoreRule },
+        { code: 'S05', width: 'half', label: ['Điểm tổng (Overall)', 'Overall score'], type: 'number', required: true, show: hasCert, help: () => hasCert() ? SCALES[state.S03].help : '', validate: overallRule },
         {
           code: 'S07', width: 'half', label: ['Ngày thi', 'Test date'], type: 'date3', years: range(NOW_Y, NOW_Y - 10), required: true, show: hasCert,
           validate: v => validDate(v) && toDate(v) <= NOW ? '' : ['Ngày thi không hợp lệ', 'The test date cannot be in the future.'],
@@ -563,7 +590,7 @@
   // ---------------------------------------------------------------------------
   // Kiểm tra dữ liệu
   // ---------------------------------------------------------------------------
-  const optionsOf = f => (typeof f.options === 'function' ? f.options() : f.options || []);
+  const optionsOf = (f, row) => (typeof f.options === 'function' ? f.options(row) : f.options || []);
   const optLabel = (f, v) => { const o = optionsOf(f).find(x => String(x.v) === String(v)); return o ? tx(o.label) : v; };
   const isRequired = (f, row) => typeof f.required === 'function' ? f.required(row) : !!f.required;
   const isShown = (f, row) => !f.show || f.show(row);
@@ -637,7 +664,7 @@
       return [`Vui lòng ${choice ? 'chọn' : 'nhập'} ${both(f.label)[0].toLowerCase()}`, choice ? 'Please select an option.' : 'This field is required.'];
     }
     if (f.type === 'monthrange') return periodRule(v);
-    if ((f.type === 'date3' || f.type === 'datetext') && !validDate(v)) return f.validate ? f.validate(v, row) : ['Ngày chưa hợp lệ', 'Please enter a valid date.'];
+    if ((f.type === 'date3' || f.type === 'datetext') && !validDate(v)) return f.type === 'datetext' && f.validate ? f.validate(v, row) : ['Ngày chưa hợp lệ', 'Please enter a valid date.'];
     return f.validate ? (f.validate(v, row) || '') : '';
   }
 
@@ -802,7 +829,7 @@
       case 'phone':
         return wrapDiv(`<div class="wmba-phone">${selectHTML(Object.assign({ 'data-part': 'cc', 'aria-label': tx(['Mã quốc gia', 'Country code']) }, common), DIAL_CODES, v.cc, '+')}<input class="wmba-input" ${attrs(Object.assign({ id, type: 'tel', inputmode: 'tel', autocomplete: 'tel-national', value: v.num, 'data-part': 'num' }, common))}></div>`);
       case 'combo': {
-        const cur = optionsOf(f).find(o => o.v === v);
+        const cur = optionsOf(f, ctx.row).find(o => o.v === v);
         return wrapDiv(`<div class="wmba-combo"><input class="wmba-input" ${attrs({
           id, type: 'text', role: 'combobox', autocomplete: 'off', spellcheck: 'false', 'aria-autocomplete': 'list', 'aria-expanded': 'false', 'aria-controls': `${id}-list`,
           'data-combo-input': path, value: cur ? tx(cur.label) : '', placeholder: tx(typeof f.placeholder === 'function' ? f.placeholder() : f.placeholder || ['Gõ để tìm…', 'Start typing to search…']),
@@ -874,7 +901,7 @@
       return `<div data-field="${c}"><label class="wmba-consent"><input type="checkbox" ${attrs({ id, 'data-path': c, checked: state[c], 'aria-describedby': `${id}-err`, 'aria-invalid': errors[c] ? 'true' : false })}> <span>${text}</span></label>
         <p class="wmba-err" id="${id}-err">${esc(errors[c] ? tx(errors[c]) : '')}</p></div>`;
     }).join('')}</div>
-    <div class="wmba-hp" aria-hidden="true"><label>Website <input type="text" name="website" data-hp tabindex="-1" autocomplete="off"></label></div>`;
+    <div class="wmba-hp" aria-hidden="true"><label>Để trống ô này <input type="text" name="wmba_hp_x7" data-hp tabindex="-1" autocomplete="off"></label></div>`;
   }
 
   function renderStep(i, summary) {
@@ -945,10 +972,18 @@
     return `${tx(['Đang tải lên…', 'Uploading…'])} ${x.progress}%`;
   }
 
+  // Tên file quá dài: cắt phần giữa, giữ đuôi file (bản_hợp_đồng_lao…_2024.pdf)
+  const shortName = (n, max = 40) => {
+    if (n.length <= max) return n;
+    const dot = n.lastIndexOf('.'), ext = dot > 0 && n.length - dot <= 6 ? n.slice(dot) : '';
+    const keep = max - ext.length - 1, head = Math.ceil(keep * .7);
+    return `${n.slice(0, head)}…${n.slice(n.length - ext.length - (keep - head), n.length - ext.length)}${ext}`;
+  };
+
   function fileItem(code, x) {
     return `<li class="wmba-file is-${x.status}" data-file="${x.id}">
       <span class="wmba-file-icon is-${x.kind}">${esc(x.kind.toUpperCase())}</span>
-      <span class="wmba-file-main"><span class="wmba-file-name">${esc(x.name)}</span>
+      <span class="wmba-file-main"><span class="wmba-file-name" title="${esc(x.name)}">${esc(shortName(x.name))}</span>
         <span class="wmba-file-sub">${fmtSize(x.size)} · ${fileStatus(x)}</span>
         <span class="wmba-bar"><span style="width:${x.progress}%"></span></span></span>
       <button type="button" class="wmba-remove" data-action="remove-file" data-code="${code}" data-id="${x.id}" aria-label="${esc(`${tx(['Xoá', 'Remove'])} ${x.name}`)}">${tx(['Xoá', 'Remove'])}</button>
@@ -982,13 +1017,13 @@
     const msgs = [];
     const f = kindsLabel(d);
     for (const file of Array.from(fileList)) {
-      const n = file.name;
+      const n = shortName(file.name);
       if (list.length >= d.max) { msgs.push([`Ô này chỉ nhận tối đa ${d.max} file.`, `You can upload up to ${d.max} file(s) here.`]); break; }
       if (file.size > CONFIG.maxFileMB * 1048576) { msgs.push([`“${n}” vượt quá ${CONFIG.maxFileMB} MB.`, `“${n}” is larger than ${CONFIG.maxFileMB} MB.`]); continue; }
       const kind = await sniff(file);
       const ok = kind === 'pdf' ? d.kinds.includes('pdf') : !!kind && d.kinds.includes('image');
       if (!ok) { msgs.push([`“${n}” không đúng định dạng (chỉ nhận ${f}).`, `“${n}” is not an accepted file type (${f} only).`]); continue; }
-      const item = { id: uid(), name: n, size: file.size, kind, progress: 0, status: 'uploading' };
+      const item = { id: uid(), name: file.name, size: file.size, kind, progress: 0, status: 'uploading' };
       list.push(item);
       track('wmba_file_upload', { doc: code });
       api.upload(file, code, p => {
@@ -1000,6 +1035,7 @@
       }).catch(() => { item.status = 'error'; }).then(() => {
         if (errors[code]) { const m = check({ kind: 'upload', f: d, path: code }); m ? errors[code] = m : delete errors[code]; }
         refreshDoc(code);
+        scheduleSave();
       });
     }
     uploadMsgs[code] = msgs;
@@ -1072,7 +1108,7 @@
   function reviewDocs() {
     return DOCS.filter(docVisible).map(d => {
       const list = (files[d.code] || []).filter(x => x.status === 'done');
-      const val = list.length ? `<span class="wmba-ok-text">✓</span> ${list.map(x => esc(x.name)).join(', ')}`
+      const val = list.length ? `<span class="wmba-ok-text">✓</span> ${list.map(x => `<span title="${esc(x.name)}">${esc(shortName(x.name))}</span>`).join(', ')}`
         : d.required() ? `<span class="wmba-err-text">${tx(['Chưa tải lên', 'Not uploaded'])}</span>` : '<span class="wmba-empty">—</span>';
       return `<div class="wmba-rv-row"><dt>${esc(tx(d.label))}</dt><dd>${val}</dd></div>`;
     }).join('') + `<div class="wmba-rv-row"><dt>${tx(['Cam kết', 'Declaration'])}</dt><dd>${state.C1 && state.C2 && state.C3 ? `<span class="wmba-ok-text">✓</span> ${tx(['Đã đồng ý 3 cam kết', 'All 3 statements accepted'])}` : `<span class="wmba-err-text">${tx(['Chưa đủ', 'Incomplete'])}</span>`}</dd></div>`;
@@ -1149,12 +1185,17 @@
     $$(`[data-path="${CSS.escape(path)}"]`, mainEl).forEach(el => m ? el.setAttribute('aria-invalid', 'true') : el.removeAttribute('aria-invalid'));
   }
 
+  const DEPENDENTS = { W02: ['W03'], P07: ['P08'], 'S06.L': ['S05'], 'S06.R': ['S05'], 'S06.W': ['S05'], 'S06.S': ['S05'] };   // lỗi của ô sau phụ thuộc giá trị ô trước
   function validatePath(path) {
     const entry = renderIndex.get(path);
     if (!entry) return;
     const m = check(entry);
     if (m) errors[path] = m; else delete errors[path];
     paintError(path);
+    (DEPENDENTS[path] || []).forEach(k => {   // kiểm lại ô phụ thuộc nếu đang lỗi hoặc đã có giá trị
+      const dep = renderIndex.get(k);
+      if (dep && (errors[k] || !isEmpty(getPath(state, k), dep.f))) validatePath(k);
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -1169,7 +1210,9 @@
   function saveDraft() {
     if (view === 'done' || view === 'intro') return;
     savedAt = new Date();
-    if (!writeJSON(CONFIG.storageKey, { state, view, maxStep, reviewReached, savedAt: savedAt.toISOString() })) savedAt = null;
+    // chỉ lưu file đã tải xong (file thật nằm trên server, theo serverId)
+    const done = Object.fromEntries(Object.entries(files).map(([k, l]) => [k, l.filter(x => x.status === 'done')]));
+    if (!writeJSON(CONFIG.storageKey, { state, files: done, view, maxStep, reviewReached, savedAt: savedAt.toISOString() })) savedAt = null;
     updateSaveLabel();
   }
   function updateSaveLabel() {
@@ -1181,6 +1224,8 @@
   // Điều hướng
   // ---------------------------------------------------------------------------
   function go(next, opts = {}) {
+    clearTimeout(saveTimer);
+    if (next !== 'done') saveDraft();   // lưu ngay phần vừa sửa trước khi rời bước (kể cả Back về trang đầu); đã nộp thì không lưu lại nháp
     view = next;
     if (typeof next === 'number') maxStep = Math.max(maxStep, next);
     if (next === 'review') { maxStep = STEPS.length - 1; reviewReached = true; }
@@ -1336,10 +1381,14 @@
   // dd/mm/yyyy: tự chèn dấu / khi gõ, lưu dạng {d,m,y}
   function readDateText(el, inputType) {
     const path = el.dataset.path;
+    const atEnd = inputType && inputType.startsWith('insert') && el.selectionStart === el.value.length;
     let parts = el.value.split('/').map(x => x.replace(/\D/g, ''));
     if (parts.length === 1) { const g = parts[0]; parts = [g.slice(0, 2), g.slice(2, 4), g.slice(4, 8)]; }
+    // Vừa gõ "/" sau ngày/tháng 1 chữ số: thêm số 0 (1/3/1990 → 01/03/1990), không bỏ dấu "/"
+    const k = parts.length - 2;
+    if (atEnd && el.value.endsWith('/') && k <= 1 && parts[k].length === 1) parts[k] = `0${parts[k]}`;
     const [d = '', m = '', y = ''] = parts;
-    if (inputType && inputType.startsWith('insert') && el.selectionStart === el.value.length) {
+    if (atEnd) {
       el.value = [d.slice(0, 2), m.slice(0, 2), y.slice(0, 4)].filter((x, i, a) => x || a.slice(i + 1).some(Boolean)).join('/') +
         ((d.length === 2 && !m && !y) || (m.length === 2 && !y) ? '/' : '');
     }
@@ -1362,12 +1411,12 @@
   const norm = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase().trim();
   const combo = { input: null, items: [], active: -1 };
   const comboList = input => document.getElementById(input.getAttribute('aria-controls'));
-  const comboField = input => renderIndex.get(input.dataset.comboInput).f;
+  const comboOpts = input => { const e = renderIndex.get(input.dataset.comboInput); return optionsOf(e.f, e.row); };
 
   function comboOpen(input, query) {
     const path = input.dataset.comboInput;
     const q = norm(query);
-    let items = optionsOf(comboField(input)).map(o => ({ v: o.v, label: tx(o.label) }));
+    let items = comboOpts(input).map(o => ({ v: o.v, label: tx(o.label) }));
     if (q) {
       items = items.filter(o => norm(o.label).includes(q));
       items.sort((a, b) => norm(b.label).startsWith(q) - norm(a.label).startsWith(q));
@@ -1406,8 +1455,9 @@
     if (pendingRedraw) { const r = pendingRedraw; pendingRedraw = null; setTimeout(r); }
   }, true);
   function cascade(path, before, sync) {
-    if (!CHILDREN[path] || getPath(state, path) === before) return;
-    CHILDREN[path].forEach(k => { state[k] = ''; delete errors[k]; });
+    const entry = renderIndex.get(path);   // rerender: field điều kiện phụ thuộc combo này (vd. Major = Other)
+    if ((!CHILDREN[path] && !(entry && entry.f.rerender)) || getPath(state, path) === before) return;
+    (CHILDREN[path] || []).forEach(k => { state[k] = ''; delete errors[k]; });
     const redraw = () => {
       const a = document.activeElement, keep = a && mainEl.contains(a) && a.id;
       const y = window.scrollY;
@@ -1434,7 +1484,7 @@
   // Rời ô: khớp đúng tên (hoặc chỉ còn 1 kết quả) thì chọn; không khớp thì trả lại giá trị đã chọn trước đó
   function comboCommit(input) {
     const path = input.dataset.comboInput;
-    const opts = optionsOf(comboField(input));
+    const opts = comboOpts(input);
     const text = norm(input.value);
     const before = getPath(state, path);
     if (!text) setPath(state, path, '');
@@ -1604,7 +1654,8 @@
     if (cal.view === 'days' && el.dataset.calDay && (step || k === 'PageUp' || k === 'PageDown')) {
       e.preventDefault();
       const t = new Date(cal.y, cal.m, +el.dataset.calDay);
-      if (step) t.setDate(t.getDate() + step); else t.setMonth(t.getMonth() + (k === 'PageDown' ? 1 : -1));
+      if (step) t.setDate(t.getDate() + step);
+      else { const nm = cal.m + (k === 'PageDown' ? 1 : -1); t.setFullYear(cal.y, nm, Math.min(t.getDate(), new Date(cal.y, nm + 1, 0).getDate())); }   // 31/3 → 28/2, không nhảy sang tháng 3
       if (t < cal.min || t > cal.max) return;
       if (t.getMonth() === cal.m && t.getFullYear() === cal.y) { const b = $(`[data-cal-day="${t.getDate()}"]`, cal.el); el.tabIndex = -1; b.tabIndex = 0; b.focus(); cal.focus = t; }
       else calShow(() => { cal.y = t.getFullYear(); cal.m = t.getMonth(); cal.focus = t; });
@@ -1634,7 +1685,7 @@
         else if (open && combo.items.length === 1) comboSelect(el, combo.items[0]);
       } else if (e.key === 'Escape' && open) {
         e.preventDefault();
-        const cur = optionsOf(comboField(el)).find(o => o.v === getPath(state, el.dataset.comboInput));
+        const cur = comboOpts(el).find(o => o.v === getPath(state, el.dataset.comboInput));
         el.value = cur ? tx(cur.label) : '';
         comboClose(el);
       }
@@ -1741,6 +1792,7 @@
         files[code] = (files[code] || []).filter(x => x.id !== btn.dataset.id);
         delete uploadMsgs[code];
         refreshDoc(code);
+        scheduleSave();
         const input = document.getElementById(idOf(code)); if (input) input.focus();
       } else if (a === 'fix-email') {
         state.P03 = btn.dataset.value;
@@ -1766,8 +1818,8 @@
     });
 
     window.addEventListener('beforeunload', e => {
-      const hasFiles = Object.values(files).some(l => l.length);
-      if (hasFiles && view !== 'done') { e.preventDefault(); e.returnValue = ''; }
+      const uploading = Object.values(files).some(l => l.some(x => x.status === 'uploading'));   // file đã tải xong được lưu trong nháp
+      if (uploading && view !== 'done') { e.preventDefault(); e.returnValue = ''; }
     });
   }
 
@@ -1782,6 +1834,7 @@
     const d = readJSON(CONFIG.storageKey, null);
     if (!d) return;
     state = Object.assign(initialState(), d.state);
+    files = d.files || {};
     maxStep = d.maxStep || 0;
     reviewReached = !!d.reviewReached;
     savedAt = d.savedAt ? new Date(d.savedAt) : null;
@@ -1798,6 +1851,7 @@
     const utm = {};
     params.forEach((v, k) => { if (k.startsWith('utm_')) utm[k] = v; });
     state._utm = utm;
+    window.addEventListener('pagehide', () => { clearTimeout(saveTimer); saveDraft(); });   // đóng tab trong 400 ms sau khi gõ
     render();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
