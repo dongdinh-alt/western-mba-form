@@ -18,6 +18,7 @@
       { v: '2027-04', label: ['Khoá 4/2027', 'Intake April 2027'] },
       { v: '2027-07', label: ['Khoá 7/2027', 'Intake July 2027'] },
       { v: '2027-10', label: ['Khoá 10/2027', 'Intake October 2027'] },
+      { v: 'other', label: ['Khác', 'Other'] },
     ],
     thresholds: { expYears: 5, mgmtYears: 2, ielts: 5.5, mismatchYears: 1, largeSizeMin: '200-999' },
     companySizes: [
@@ -52,9 +53,9 @@
     mgmtLevels: ['leader', 'manager', 'department_head', 'director'],
     maxFileMB: 10,
     assetsUrl: 'assets/',   // đường dẫn thư mục assets (tương đối với trang)
-    privacyUrl: '#',
+    privacyUrl: 'https://pso.edu.vn/chinh-sach-bao-mat/',
     contact: ['Phòng Tuyển sinh Western MBA – PSO', 'the Western MBA – PSO Admission team'],
-    storageKey: 'wmba-pso-draft-v4',   // đổi khi cấu trúc dữ liệu thay đổi để không đọc nhầm bản nháp cũ
+    storageKey: 'wmba-pso-draft-v5',   // đổi khi cấu trúc dữ liệu thay đổi để không đọc nhầm bản nháp cũ
   }, window.WMBA_CONFIG || {});
 
   // 34 tỉnh/thành sau sắp xếp 07/2025; value = mã đơn vị hành chính (dùng cho báo cáo)
@@ -217,10 +218,10 @@
   const emptyDate = () => ({ d: '', m: '', y: '' });
   function initialState() {
     return {
-      I01: CONFIG.program, I02: '',
-      P01: '', P02: '', P03: '', P04: emptyDate(), P05: '', P06: 'VN', P07: 'VN', P08: '', P09: '',
+      I01: CONFIG.program, I02: '', I03: '',
+      P01: '', P02: '', P03: '', P04: emptyDate(), P05: '', P07: 'VN', P08: '', P09: '',
       A04: 'VN', A02: '', A05: '', A01: '', A03: { cc: '+84', num: '' },
-      S01: [blankRow.S01()], S02: [], S03: '', S04: '', S05: '', S06: { L: '', R: '', W: '', S: '' }, S07: emptyDate(), S08: emptyDate(),
+      S01: [blankRow.S01()], S02: [], S03: '', S05: '', S06: { L: '', R: '', W: '', S: '' }, S07: emptyDate(), S08: emptyDate(),
       W01: [blankRow.W01()], W02: '', W03: '',
       L01: '', L02: [], L03: '',
       Q01: '', Q02: '', Q03: '', Q04: '', Q05: '', Q06: '', Q07: '', Q08: [], Q08_other: '', Q09: { name: '', cohort: '', phone: '' }, Q10: [],
@@ -246,21 +247,30 @@
   // Quy tắc validation (thông báo lỗi theo BRD 4.2)
   // ---------------------------------------------------------------------------
   const isHB = () => true;   // mọi ứng viên đều được xét học bổng
-  const hasCert = () => state.S03 === 'ielts' || state.S03 === 'equiv';
+  // Thang điểm từng chứng chỉ (Overall; sub = trần điểm từng kỹ năng nếu khác Overall)
+  const SCALES = {
+    ielts: { min: 0, max: 9, step: 0.5, help: ['Từ 0 đến 9', 'From 0 to 9'] },
+    toefl: { min: 0, max: 120, step: 1, sub: 30, help: ['Từ 0 đến 120', 'From 0 to 120'], subHelp: ['Mỗi kỹ năng từ 0 đến 30', 'Each skill from 0 to 30'] },
+    pte: { min: 10, max: 90, step: 1, help: ['Từ 10 đến 90', 'From 10 to 90'] },
+  };
+  const hasCert = () => !!SCALES[state.S03];
   const isIelts = () => state.S03 === 'ielts';
   const M = {
     ielts: ['Điểm IELTS từ 0 đến 9, bước 0,5', 'IELTS scores range from 0 to 9, in steps of 0.5.'],
-    score: ['Vui lòng nhập điểm hợp lệ', 'Please enter a valid score.'],
     phone: ['Số điện thoại chưa đúng', 'Please enter a valid phone number.'],
     years: ['Vui lòng nhập số năm hợp lệ', 'Please enter a valid number of years.'],
     essay: ['Bài viết vượt quá 250 từ', 'Your answer is over 250 words.'],
     period: ['Thời gian làm việc chưa hợp lệ', 'Please check the dates: “From” must be before “To”, and neither can be in the future.'],
   };
-  const ieltsRule = v => {
-    const n = parseNum(v);
-    return isNaN(n) || n < 0 || n > 9 || Math.round(n * 2) !== n * 2 ? M.ielts : '';
+  const scaleRule = sub => v => {
+    const sc = SCALES[state.S03];
+    if (!sc) return '';
+    const n = parseNum(v), max = sub && sc.sub ? sc.sub : sc.max;
+    if (isNaN(n) || n < sc.min || n > max || Math.round(n / sc.step) !== n / sc.step) return isIelts() ? M.ielts : [`Điểm từ ${sc.min} đến ${max}`, `Scores range from ${sc.min} to ${max}.`];
+    return '';
   };
-  const scoreRule = v => isIelts() ? ieltsRule(v) : (isNaN(parseNum(v)) || parseNum(v) < 0 ? M.score : '');
+  const scoreRule = scaleRule(false);
+  const subRule = scaleRule(true);
   const phoneRule = v => /^\+?\d{9,15}$/.test(String(v).replace(/[\s.\-()]/g, '')) ? '' : M.phone;
 
   // Số di động {cc, num}. Với +84: số 10 chữ số bắt đầu bằng 0 tự bỏ số 0 (0912052459 → 912052459).
@@ -331,7 +341,7 @@
     ['Q07', ['Ngoài hỗ trợ tài chính, học bổng này có ý nghĩa gì với bạn về chuyên môn và cá nhân?', 'Beyond financial assistance, what would receiving this scholarship mean to you professionally and personally?'], ''],
   ];
 
-  // BRD mục 5: U01–U07
+  // BRD mục 5: U01–U08
   const DOCS = [
     { code: 'U01', label: ['Ảnh thẻ', 'Passport-style photo'], note: ['3x4 hoặc 4x6, nền trơn', '3x4 or 4x6, plain background'], kinds: ['image'], max: 1, required: () => true },
     { code: 'U02', label: ['CV / Resume', 'CV / Resume'], kinds: ['pdf'], max: 1, required: () => true },
@@ -339,13 +349,14 @@
     { code: 'U04', label: ['Bảng điểm', 'Academic transcript(s)'], kinds: ['pdf', 'image'], max: 3, required: () => true },
     { code: 'U05', label: ['Chứng chỉ tiếng Anh', 'English certificate'], kinds: ['pdf', 'image'], max: 1, required: () => state.S03 !== 'none' },
     { code: 'U06', label: ['Minh chứng vị trí công tác', 'Proof of position'], note: ['Thư xác nhận nhân sự, quyết định bổ nhiệm hoặc hợp đồng lao động.', 'HR letter, appointment letter or employment contract.'], kinds: ['pdf'], max: 3, required: () => true, show: isHB },
+    { code: 'U08', label: ['Thư xin học bổng', 'Scholarship Application Letter'], note: ['Viết bằng tiếng Anh: động lực ứng tuyển học bổng WMBA, lý do chọn chương trình và định hướng nghề nghiệp trong tương lai.', 'A letter written in English outlining the applicant’s motivation for applying for the WMBA scholarship, the reasons for choosing the programme, and their future professional and career aspirations.'], kinds: ['pdf'], max: 1, required: () => true, show: isHB },
     { code: 'U07', label: ['Tài liệu khác', 'Other documents'], kinds: ['pdf', 'image'], max: 3, required: () => false },
   ];
   const DOC_BY_CODE = Object.fromEntries(DOCS.map(d => [d.code, d]));
   const DOC_GROUPS = [
     [['Hồ sơ cá nhân', 'Personal'], ['U01', 'U02']],
     [['Học vấn & tiếng Anh', 'Education & English'], ['U03', 'U04', 'U05']],
-    [['Học bổng', 'Scholarship'], ['U06']],
+    [['Học bổng', 'Scholarship'], ['U06', 'U08']],
     [['Khác', 'Other'], ['U07']],
   ];
   const docVisible = d => !d.show || d.show();
@@ -356,6 +367,7 @@
       lead: ['Chọn khoá học.', 'Choose your intake.'],
       fields: [
         { code: 'I02', label: ['Khoá / Intake', 'Intake'], type: 'select', required: true, options: CONFIG.intakes, placeholder: ['Chọn khoá', 'Select an intake'] },
+        { code: 'I03', label: ['Khoá mong muốn', 'Preferred intake'], type: 'text', required: true, placeholder: ['Ví dụ: tháng 1/2028', 'e.g. January 2028'], show: () => state.I02 === 'other' },
         { type: 'info', html: () => scholarshipBox() },
       ],
     },
@@ -366,9 +378,7 @@
         { code: 'P02', label: ['Họ và tên', 'Full name'], type: 'text', required: true, autocomplete: 'name', validate: v => v.trim().split(/\s+/).length < 2 ? ['Vui lòng nhập đầy đủ họ và tên', 'Please enter your full name.'] : '' },
         { code: 'P01', width: 'half', label: ['Giới tính', 'Gender'], type: 'radio', required: true, options: [{ v: 'male', label: ['Nam', 'Male'] }, { v: 'female', label: ['Nữ', 'Female'] }] },
         { code: 'P04', width: 'half', label: ['Ngày sinh', 'Date of birth'], type: 'datetext', min: `${NOW_Y - 99}-01-01`, required: true, validate: v => validDate(v) && /^\d{4}$/.test(v.y) && +v.y > NOW_Y - 100 && toDate(v) <= NOW ? '' : ['Ngày sinh không hợp lệ', 'Please enter a valid date of birth.'] },
-        { code: 'P06', width: 'half', label: ['Quốc gia sinh', 'Country of birth'], type: 'combo', options: countries, required: true },
-        { code: 'P05', width: 'half', label: ['Nơi sinh (tỉnh/thành)', 'Place of birth (province/city)'], type: 'combo', options: PROVINCES, required: true, show: () => state.P06 === 'VN' },
-        { code: 'P05', width: 'half', label: ['Nơi sinh (tỉnh/thành)', 'Place of birth (city)'], type: 'text', required: true, show: () => state.P06 !== 'VN' },
+        { code: 'P05', width: 'half', label: ['Nơi sinh (tỉnh/thành)', 'Place of birth (province/city)'], type: 'text', required: true },
         { code: 'P07', width: 'half', label: ['Quốc tịch', 'Nationality'], type: 'combo', options: countries, required: true },
         {
           code: 'P08', width: 'half', label: ['Số CCCD / Hộ chiếu', 'ID card / Passport number'], type: 'text', required: true, autocomplete: 'off', mask: true,
@@ -408,7 +418,7 @@
         },
         {
           code: 'S02', label: ['Chứng chỉ chuyên môn', 'Professional certificates'], optional: true, type: 'repeater', min: 0, rowTitle: ['Chứng chỉ', 'Certificate'], addLabel: ['Thêm chứng chỉ', 'Add certificate'],
-          empty: ['Bỏ qua nếu không có.', 'Skip if not applicable.'], fields: [
+          empty: ['Bỏ qua nếu không có. Khi đã thêm, vui lòng điền đủ các trường.', 'Skip if not applicable. Once added, all fields are required.'], fields: [
             { key: 'name', code: 'S02_name', width: 'twothird', label: ['Tên chứng chỉ', 'Certificate name'], type: 'text', required: true,  },
             { key: 'year', code: 'S02_year', width: 'third', label: ['Năm', 'Year'], type: 'select', options: yearOpts, required: true },
             { key: 'issuer', code: 'S02_issuer', label: ['Đơn vị cấp', 'Issued by'], type: 'text', required: true },
@@ -416,15 +426,15 @@
         },
         { type: 'heading', label: ['Trình độ tiếng Anh', 'English proficiency'] },
         {
-          code: 'S03', label: ['Chứng chỉ tiếng Anh', 'English certificate'], type: 'radio', stack: true, required: true,
+          code: 'S03', label: ['Chứng chỉ tiếng Anh', 'English certificate'], type: 'select', required: true, placeholder: ['Chọn chứng chỉ', 'Select a certificate'],
           options: [
             { v: 'ielts', label: 'IELTS Academic' },
-            { v: 'equiv', label: ['Chứng chỉ tương đương được Western Sydney University công nhận', 'Equivalent certificate recognised by Western Sydney University'], desc: 'TOEFL iBT, PTE Academic…' },
-            { v: 'none', label: ['Chưa có', 'Not yet taken'], desc: ['Bạn nhập ngày dự kiến thi', 'You will enter your expected test date'] },
+            { v: 'toefl', label: 'TOEFL iBT' },
+            { v: 'pte', label: 'PTE Academic' },
+            { v: 'none', label: ['Chưa thi', 'Not yet taken'] },
           ],
         },
-        { code: 'S04', label: ['Tên chứng chỉ tương đương', 'Name of equivalent certificate'], type: 'text', required: true, placeholder: ['Ví dụ: TOEFL iBT, PTE Academic', 'e.g. TOEFL iBT, PTE Academic'], show: () => state.S03 === 'equiv' },
-        { code: 'S05', width: 'half', label: ['Điểm tổng (Overall)', 'Overall score'], type: 'number', required: true, show: hasCert, help: () => isIelts() ? ['Từ 0 đến 9', 'From 0 to 9'] : '', validate: scoreRule },
+        { code: 'S05', width: 'half', label: ['Điểm tổng (Overall)', 'Overall score'], type: 'number', required: true, show: hasCert, help: () => hasCert() ? SCALES[state.S03].help : '', validate: scoreRule },
         {
           code: 'S07', width: 'half', label: ['Ngày thi', 'Test date'], type: 'date3', years: range(NOW_Y, NOW_Y - 10), required: true, show: hasCert,
           validate: v => validDate(v) && toDate(v) <= NOW ? '' : ['Ngày thi không hợp lệ', 'The test date cannot be in the future.'],
@@ -435,11 +445,11 @@
           },
         },
         {
-          code: 'S06', label: ['Điểm từng kỹ năng', 'Sub-scores'], optional: true, type: 'group', show: hasCert, fields: [
-            { key: 'L', label: 'Listening', type: 'number', width: 'quarter', validate: scoreRule },
-            { key: 'R', label: 'Reading', type: 'number', width: 'quarter', validate: scoreRule },
-            { key: 'W', label: 'Writing', type: 'number', width: 'quarter', validate: scoreRule },
-            { key: 'S', label: 'Speaking', type: 'number', width: 'quarter', validate: scoreRule },
+          code: 'S06', label: ['Điểm từng kỹ năng', 'Sub-scores'], optional: true, type: 'group', show: hasCert, help: () => state.S03 === 'toefl' ? SCALES.toefl.subHelp : '', fields: [
+            { key: 'L', label: 'Listening', type: 'number', width: 'quarter', validate: subRule },
+            { key: 'R', label: 'Reading', type: 'number', width: 'quarter', validate: subRule },
+            { key: 'W', label: 'Writing', type: 'number', width: 'quarter', validate: subRule },
+            { key: 'S', label: 'Speaking', type: 'number', width: 'quarter', validate: subRule },
           ],
         },
         {
@@ -535,7 +545,7 @@
     C2: ['Tôi đồng ý để PSO xác minh thông tin với công ty và trường đào tạo.', 'I agree that PSO may verify my information with my employers and educational institutions.'],
     C3: ['Tôi đồng ý với {link} của PSO.', 'I agree to PSO’s {link}.'],
   };
-  const PRIVACY = ['Chính sách bảo mật dữ liệu cá nhân', 'Personal Data Privacy Policy'];
+  const PRIVACY = ['Chính sách bảo mật', 'Privacy Policy'];
 
   function scholarshipBox() {
     const T = CONFIG.thresholds;
@@ -1387,7 +1397,7 @@
     input.setAttribute('aria-activedescendant', li.id);
     li.scrollIntoView({ block: 'nearest' });
   }
-  const CHILDREN = { P06: ['P05'], A04: ['A02', 'A05'], A02: ['A05'] };
+  const CHILDREN = { A04: ['A02', 'A05'], A02: ['A05'] };
   let pointerDown = false, pendingRedraw = null;
   document.addEventListener('pointerdown', () => { pointerDown = true; }, true);
   document.addEventListener('pointerup', () => {
