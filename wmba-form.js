@@ -232,7 +232,7 @@
       I01: CONFIG.program, I02: '', I03: '',
       P01: '', P02: '', P03: '', P04: emptyDate(), P05: '', P07: 'VN', P08: '', P09: '',
       A04: 'VN', A02: '', A05: '', A01: '', A03: { cc: '+84', num: '' },
-      S01: [blankRow.S01()], S02: [], S03: '', S05: '', S06: { L: '', R: '', W: '', S: '' }, S07: emptyDate(), S08: emptyDate(),
+      S01: [blankRow.S01()], S02: [], S03: '', S05: '', S09: '', S10: '', S06: { L: '', R: '', W: '', S: '' }, S07: emptyDate(), S08: emptyDate(),
       W01: [blankRow.W01()], W02: '', W03: '',
       L01: '', L02: [], L03: '',
       Q01: '', Q02: '', Q03: '', Q04: '', Q05: '', Q06: '', Q07: '', Q08: [], Q08_other: '', Q09: { name: '', cohort: '', phone: '' }, Q10: [],
@@ -258,38 +258,52 @@
   // Quy tắc validation (thông báo lỗi theo BRD 4.2)
   // ---------------------------------------------------------------------------
   const isHB = () => true;   // mọi ứng viên đều được xét học bổng
-  // Thang điểm từng chứng chỉ (Overall; sub = trần điểm từng kỹ năng nếu khác Overall)
+  // Cách nhập kết quả theo từng chứng chỉ:
+  //   overall / sub: [min, max, bước] của điểm tổng và điểm từng kỹ năng (L, R, W, S)
+  //   avg: Overall là trung bình 4 kỹ năng · sum: Overall là tổng 4 kỹ năng
+  //   levels / grades: chứng chỉ báo kết quả theo bậc (CEFR) hoặc xếp loại · valid: số năm hiệu lực thường gặp
+  const opt = list => list.map(([v, label]) => ({ v, label: label || v }));
   const SCALES = {
-    ielts: { min: 0, max: 9, step: 0.5, help: ['Từ 0 đến 9', 'From 0 to 9'] },
-    toefl: { min: 0, max: 120, step: 1, sub: 30, help: ['Từ 0 đến 120', 'From 0 to 120'], subHelp: ['Mỗi kỹ năng từ 0 đến 30', 'Each skill from 0 to 30'] },
-    pte: { min: 10, max: 90, step: 1, help: ['Từ 10 đến 90', 'From 10 to 90'] },
+    ielts: { name: 'IELTS', overall: [0, 9, 0.5], sub: [0, 9, 0.5], avg: true, valid: 2 },
+    toefl: { name: 'TOEFL iBT', overall: [0, 120, 1], sub: [0, 30, 1], valid: 2 },
+    pte: { name: 'PTE Academic', overall: [10, 90, 1], sub: [10, 90, 1], valid: 2 },
+    // VSTEP: bậc suy ra từ điểm tổng (4.0–5.5 → B1, 6.0–8.0 → B2, 8.5–10 → C1)
+    vstep: { name: 'VSTEP', overall: [0, 10, 0.5], sub: [0, 10, 0.5], avg: true,
+      band: n => n >= 8.5 ? ['Bậc 5 (C1)', 'Level 5 (C1)'] : n >= 6 ? ['Bậc 4 (B2)', 'Level 4 (B2)'] : n >= 4 ? ['Bậc 3 (B1)', 'Level 3 (B1)'] : ['Chưa đạt bậc 3 (B1)', 'Below Level 3 (B1)'] },
+    peic: { name: 'PEIC', levels: opt([['A1', 'Level A1 (A1)'], ['L1', 'Level 1 (A2)'], ['L2', 'Level 2 (B1)'], ['L3', 'Level 3 (B2)'], ['L4', 'Level 4 (C1)'], ['L5', 'Level 5 (C2)']]),
+      grades: opt([['pass', 'Pass'], ['merit', 'Merit'], ['distinction', 'Distinction']]) },
+    aptis: { name: 'Aptis ESOL', overall: [0, 200, 1], sub: [0, 50, 1], sum: true, levels: opt([['A1'], ['A2'], ['B1'], ['B2'], ['C']]) },
   };
-  const hasCert = () => !!SCALES[state.S03];
-  const isIelts = () => state.S03 === 'ielts';
+  const sc = () => SCALES[state.S03];
+  const hasCert = () => !!sc();
+  const rangeText = ([a, b, st], each) => tf([`${each ? 'Mỗi kỹ năng từ' : 'Từ'} {a} đến {b}${st < 1 ? ', bước 0,5' : ''}`, `${each ? 'Each skill from' : 'From'} {a} to {b}${st < 1 ? ', in steps of 0.5' : ''}`], { a, b });
   const M = {
-    ielts: ['Điểm IELTS từ 0 đến 9, bước 0,5', 'IELTS scores range from 0 to 9, in steps of 0.5.'],
     phone: ['Số điện thoại chưa đúng', 'Please enter a valid phone number.'],
     years: ['Vui lòng nhập số năm hợp lệ', 'Please enter a valid number of years.'],
     essay: ['Bài viết vượt quá 250 từ', 'Your answer is over 250 words.'],
     period: ['Thời gian làm việc chưa hợp lệ', 'Please check the dates: “From” must be before “To”, and neither can be in the future.'],
   };
-  const scaleRule = sub => v => {
-    const sc = SCALES[state.S03];
-    if (!sc) return '';
-    const n = parseNum(v), max = sub && sc.sub ? sc.sub : sc.max;
-    if (isNaN(n) || n < sc.min || n > max || Math.round(n / sc.step) !== n / sc.step) return isIelts() ? M.ielts : [`Điểm từ ${sc.min} đến ${max}`, `Scores range from ${sc.min} to ${max}.`];
-    return '';
+  const scaleRule = key => v => {
+    const r = sc() && sc()[key];
+    if (!r) return '';
+    const [a, b, st] = r, n = parseNum(v);
+    return isNaN(n) || n < a || n > b || Math.round(n / st) !== n / st
+      ? [`Điểm ${sc().name} từ ${a} đến ${b}${st < 1 ? ', bước 0,5' : ''}`, `${sc().name} scores range from ${a} to ${b}${st < 1 ? ', in steps of 0.5' : ''}.`] : '';
   };
-  const scoreRule = scaleRule(false);
-  const subRule = scaleRule(true);
-  // IELTS: Overall là trung bình 4 kỹ năng, nên 4 kỹ năng không thể cùng cao hơn Overall
+  const scoreRule = scaleRule('overall');
+  const subRule = scaleRule('sub');
+  // Overall phải khớp 4 kỹ năng: trung bình (IELTS, VSTEP) thì 4 kỹ năng không thể cùng cao hơn; tổng (Aptis) thì phải bằng tổng
   const overallRule = v => {
     const e = scoreRule(v);
-    if (e || !isIelts()) return e;
-    const subs = Object.values(state.S06).map(parseNum);
-    return subs.every(n => !isNaN(n)) && subs.every(n => n > parseNum(v))
-      ? ['Điểm Overall không khớp: cả 4 kỹ năng đều cao hơn Overall', 'Overall score doesn’t match: all four sub-scores are higher than the overall score.'] : '';
+    if (e) return e;
+    const subs = Object.values(state.S06).map(parseNum), n = parseNum(v);
+    if (!subs.every(x => !isNaN(x))) return '';
+    if (sc().avg && subs.every(x => x > n)) return ['Điểm Overall không khớp: cả 4 kỹ năng đều cao hơn Overall', 'Overall score doesn’t match: all four sub-scores are higher than the overall score.'];
+    if (sc().sum && subs.reduce((a, b) => a + b, 0) !== n) return ['Điểm tổng phải bằng tổng điểm 4 kỹ năng', 'The overall score must equal the sum of the four skill scores.'];
+    return '';
   };
+  // giá trị cũ không còn trong danh sách (vd. đổi chứng chỉ sau khi đã chọn bậc) → chọn lại
+  const inOptions = function (v) { return optionsOf(this).some(o => o.v === v) ? '' : ['Vui lòng chọn lại', 'Please select an option.']; };
   const phoneRule = v => /^\+?\d{9,15}$/.test(String(v).replace(/[\s.\-()]/g, '')) ? '' : M.phone;
 
   // Số di động {cc, num}. Với +84: số 10 chữ số bắt đầu bằng 0 tự bỏ số 0 (0912052459 → 912052459).
@@ -458,21 +472,27 @@
             { v: 'ielts', label: 'IELTS Academic' },
             { v: 'toefl', label: 'TOEFL iBT' },
             { v: 'pte', label: 'PTE Academic' },
+            { v: 'vstep', label: 'VSTEP' },
+            { v: 'peic', label: 'PEIC (Pearson English International Certificate)' },
+            { v: 'aptis', label: 'Aptis ESOL' },
             { v: 'none', label: ['Chưa thi', 'Not yet taken'] },
           ],
         },
-        { code: 'S05', width: 'half', label: ['Điểm tổng (Overall)', 'Overall score'], type: 'number', required: true, show: hasCert, help: () => hasCert() ? SCALES[state.S03].help : '', validate: overallRule },
+        { code: 'S05', width: 'half', label: ['Điểm tổng (Overall)', 'Overall score'], type: 'number', required: true, show: () => hasCert() && !!sc().overall, help: () => hasCert() && sc().overall ? rangeText(sc().overall) : '', validate: overallRule,
+          dyn: v => { const n = parseNum(v); return hasCert() && sc().band && !scoreRule(v) && !isNaN(n) ? `<span class="wmba-hint">${tx(['Tương đương', 'Equivalent to'])} <b>${tx(sc().band(n))}</b></span>` : ''; } },
+        { code: 'S09', width: 'half', label: ['Trình độ (CEFR)', 'CEFR level'], type: 'select', required: true, options: () => hasCert() && sc().levels || [], placeholder: ['Chọn trình độ', 'Select a level'], show: () => hasCert() && !!sc().levels, validate: inOptions },
+        { code: 'S10', width: 'half', label: ['Xếp loại', 'Result'], type: 'select', required: true, options: () => hasCert() && sc().grades || [], placeholder: ['Chọn xếp loại', 'Select a result'], show: () => hasCert() && !!sc().grades, validate: inOptions },
         {
           code: 'S07', width: 'half', label: ['Ngày thi', 'Test date'], type: 'date3', years: range(NOW_Y, NOW_Y - 10), required: true, show: hasCert,
           validate: v => validDate(v) && toDate(v) <= NOW ? '' : ['Ngày thi không hợp lệ', 'The test date cannot be in the future.'],
           dyn: v => {
-            if (!isIelts() || !validDate(v)) return '';
-            const exp = toDate(v); exp.setFullYear(exp.getFullYear() + 2);
-            return exp < NOW ? `<span class="wmba-warn">${tx(['IELTS thường có hiệu lực 2 năm.', 'IELTS results are usually valid for 2 years.'])}</span>` : '';
+            if (!hasCert() || !sc().valid || !validDate(v)) return '';
+            const exp = toDate(v); exp.setFullYear(exp.getFullYear() + sc().valid);
+            return exp < NOW ? `<span class="wmba-warn">${tf(['{c} thường có hiệu lực {n} năm.', '{c} results are usually valid for {n} years.'], { c: sc().name, n: sc().valid })}</span>` : '';
           },
         },
         {
-          code: 'S06', label: ['Điểm từng kỹ năng', 'Sub-scores'], optional: true, type: 'group', show: hasCert, help: () => state.S03 === 'toefl' ? SCALES.toefl.subHelp : '', fields: [
+          code: 'S06', label: ['Điểm từng kỹ năng', 'Sub-scores'], optional: true, type: 'group', show: () => hasCert() && !!sc().sub, help: () => hasCert() && sc().sub ? rangeText(sc().sub, true) : '', fields: [
             { key: 'L', label: 'Listening', type: 'number', width: 'quarter', validate: subRule },
             { key: 'R', label: 'Reading', type: 'number', width: 'quarter', validate: subRule },
             { key: 'W', label: 'Writing', type: 'number', width: 'quarter', validate: subRule },
