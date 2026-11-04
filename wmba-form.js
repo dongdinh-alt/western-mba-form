@@ -413,7 +413,7 @@
             { key: 'level', code: 'S01_level', width: 'half', label: ['Bậc', 'Level'], type: 'select', options: [{ v: 'high_school', label: ['Tốt nghiệp THPT', 'High school diploma'] }, { v: 'bachelor', label: ['Tốt nghiệp Đại học', "Bachelor's degree"] }, { v: 'master', label: ['Thạc sĩ', "Master's degree"] }], required: true },
             { key: 'year', code: 'S01_year', width: 'half', label: ['Năm tốt nghiệp', 'Graduation year'], type: 'select', options: yearOpts, required: true },
             { key: 'major', code: 'S01_major', width: 'half', label: ['Chuyên ngành', 'Major'], type: 'text', required: true, show: row => row.level !== 'high_school' },
-            { key: 'school', code: 'S01_school', width: 'half', label: ['Trường', 'Institution'], type: 'text', required: true,  },
+            { key: 'school', code: 'S01_school', width: 'half', label: ['Trường', 'School / University'], type: 'text', required: true,  },
           ],
         },
         {
