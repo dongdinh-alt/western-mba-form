@@ -3,6 +3,36 @@
 Changes to the Western MBA – PSO application form since the first prototype (`2b703f0`).
 Front-end only: the backend, database, admin views and emails must be updated to match the **data contract changes** below.
 
+## 2026-11-05
+
+### Data contract changes
+
+| Field | Change |
+|---|---|
+| `I03` preferred intake | Now a select instead of free text. Values: `"2028"`, `"2029"`, `"2030"`. Still required only when `I02 === "other"`. |
+| `S03` English certificate | New value `toefl26`: TOEFL iBT on the 1–6 scale used since 21 January 2026. `toefl` now means the 0–120 scale. |
+
+### Score rules
+
+| `S03` | `S05` overall | `S06` each skill | Rule |
+|---|---|---|---|
+| `ielts` | unchanged | unchanged | **Changed.** When all four sub-scores are given, overall must be within 1 point of their plain average (no rounding): `abs(overall − sum / 4) <= 1`. This replaces the "all four higher than overall" check. |
+| `toefl` | 0–120, integer | 0–30, integer | **New.** When all four sub-scores are given, overall must equal their sum. |
+| `toefl26` *(new)* | 1–6, step 0.5 | 1–6, step 0.5 | No overall/sub-score check. 2-year validity warning. |
+
+| `vstep` | unchanged | unchanged | **Changed.** The overall/sub-score check and the band hint (B1/B2/C1) are removed. |
+
+Sub-scores stay optional; the overall check only runs when all four are filled. The form never rounds or suggests the overall score.
+Scholarship flag F5 still auto-scores IELTS only; `toefl26` returns `review`.
+
+### Form behaviour
+
+- Changing the English certificate now clears the overall score, sub-scores, CEFR level and result (`S05`, `S06`, `S09`, `S10`), so the applicant must re-enter them. Re-selecting the same certificate keeps them.
+- Removed the hint under the overall score (VSTEP band, TOEFL 1–6 CEFR level).
+- Work: removed the "Leader level and above." help line under "Total years in management roles" (W03). The F3 scholarship check still counts Leader-level positions as management.
+- Review: the section badge now reads "Completed" (shown uppercase).
+- Country lists (nationality, address country) always show "Vietnam"; some browsers returned "Việt Nam". The stored value is still `VN`.
+
 ## 2026-11-04
 
 Commits: `aa1e08e`, `b702074`, `f29268c`, `ea9b145`, `6b92152`.

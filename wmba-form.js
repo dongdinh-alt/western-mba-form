@@ -181,7 +181,8 @@
     if (!regionNames[lang]) {
       let name = c => c;
       try { const dn = new Intl.DisplayNames([lang], { type: 'region' }); name = c => dn.of(c) || c; } catch (e) { /* trình duyệt cũ */ }
-      regionNames[lang] = COUNTRY_CODES.map(c => ({ v: c, label: name(c) }))
+      const FIXED = { VN: 'Vietnam' };   // một số trình duyệt trả về "Việt Nam"
+      regionNames[lang] = COUNTRY_CODES.map(c => ({ v: c, label: FIXED[c] || name(c) }))
         .sort((a, b) => a.v === 'VN' ? -1 : b.v === 'VN' ? 1 : a.label.localeCompare(b.label, lang));
     }
     return regionNames[lang];
@@ -260,16 +261,16 @@
   const isHB = () => true;   // mọi ứng viên đều được xét học bổng
   // Cách nhập kết quả theo từng chứng chỉ:
   //   overall / sub: [min, max, bước] của điểm tổng và điểm từng kỹ năng (L, R, W, S)
-  //   avg: Overall là trung bình 4 kỹ năng · sum: Overall là tổng 4 kỹ năng
+  //   avg: Overall lệch trung bình 4 kỹ năng không quá 1 điểm · sum: Overall là tổng 4 kỹ năng
   //   levels / grades: chứng chỉ báo kết quả theo bậc (CEFR) hoặc xếp loại · valid: số năm hiệu lực thường gặp
   const opt = list => list.map(([v, label]) => ({ v, label: label || v }));
   const SCALES = {
     ielts: { name: 'IELTS', overall: [0, 9, 0.5], sub: [0, 9, 0.5], avg: true, valid: 2 },
-    toefl: { name: 'TOEFL iBT', overall: [0, 120, 1], sub: [0, 30, 1], valid: 2 },
+    toefl: { name: 'TOEFL iBT', overall: [0, 120, 1], sub: [0, 30, 1], sum: true, valid: 2 },
+    // TOEFL iBT từ 21/01/2026: mỗi phần và Overall theo thang 1–6
+    toefl26: { name: 'TOEFL iBT', overall: [1, 6, 0.5], sub: [1, 6, 0.5], valid: 2 },
     pte: { name: 'PTE Academic', overall: [10, 90, 1], sub: [10, 90, 1], valid: 2 },
-    // VSTEP: bậc suy ra từ điểm tổng (4.0–5.5 → B1, 6.0–8.0 → B2, 8.5–10 → C1)
-    vstep: { name: 'VSTEP', overall: [0, 10, 0.5], sub: [0, 10, 0.5], avg: true,
-      band: n => n >= 8.5 ? ['Bậc 5 (C1)', 'Level 5 (C1)'] : n >= 6 ? ['Bậc 4 (B2)', 'Level 4 (B2)'] : n >= 4 ? ['Bậc 3 (B1)', 'Level 3 (B1)'] : ['Chưa đạt bậc 3 (B1)', 'Below Level 3 (B1)'] },
+    vstep: { name: 'VSTEP', overall: [0, 10, 0.5], sub: [0, 10, 0.5] },
     peic: { name: 'PEIC', levels: opt([['A1', 'Level A1 (A1)'], ['L1', 'Level 1 (A2)'], ['L2', 'Level 2 (B1)'], ['L3', 'Level 3 (B2)'], ['L4', 'Level 4 (C1)'], ['L5', 'Level 5 (C2)']]),
       grades: opt([['pass', 'Pass'], ['merit', 'Merit'], ['distinction', 'Distinction']]) },
     aptis: { name: 'Aptis ESOL', overall: [0, 200, 1], sub: [0, 50, 1], sum: true, levels: opt([['A1'], ['A2'], ['B1'], ['B2'], ['C']]) },
@@ -292,13 +293,13 @@
   };
   const scoreRule = scaleRule('overall');
   const subRule = scaleRule('sub');
-  // Overall phải khớp 4 kỹ năng: trung bình (IELTS, VSTEP) thì 4 kỹ năng không thể cùng cao hơn; tổng (Aptis) thì phải bằng tổng
+  // Overall phải khớp 4 kỹ năng: lệch trung bình không quá 1 điểm (IELTS) hoặc bằng tổng (TOEFL, Aptis)
   const overallRule = v => {
     const e = scoreRule(v);
     if (e) return e;
     const subs = Object.values(state.S06).map(parseNum), n = parseNum(v);
     if (!subs.every(x => !isNaN(x))) return '';
-    if (sc().avg && subs.every(x => x > n)) return ['Điểm Overall không khớp: cả 4 kỹ năng đều cao hơn Overall', 'Overall score doesn’t match: all four sub-scores are higher than the overall score.'];
+    if (sc().avg && Math.abs(n - subs.reduce((a, b) => a + b, 0) / 4) > 1) return ['Điểm Overall không được chênh quá 1 điểm so với trung bình 4 kỹ năng', 'The overall score can’t differ from the average of the four sub-scores by more than 1.'];
     if (sc().sum && subs.reduce((a, b) => a + b, 0) !== n) return ['Điểm tổng phải bằng tổng điểm 4 kỹ năng', 'The overall score must equal the sum of the four skill scores.'];
     return '';
   };
@@ -406,7 +407,7 @@
       lead: ['Chọn khoá học.', 'Choose your intake.'],
       fields: [
         { code: 'I02', label: ['Khoá / Intake', 'Intake'], type: 'select', required: true, options: CONFIG.intakes, placeholder: ['Chọn khoá', 'Select an intake'] },
-        { code: 'I03', label: ['Khoá mong muốn', 'Preferred intake'], type: 'text', required: true, placeholder: ['Ví dụ: tháng 1/2028', 'e.g. January 2028'], show: () => state.I02 === 'other' },
+        { code: 'I03', label: ['Khoá mong muốn', 'Preferred intake'], type: 'select', required: true, placeholder: ['Chọn năm', 'Select a year'], options: ['2028', '2029', '2030'].map(v => ({ v, label: v })), validate: inOptions, show: () => state.I02 === 'other' },
         { type: 'info', html: () => scholarshipBox() },
       ],
     },
@@ -470,7 +471,8 @@
           code: 'S03', label: ['Chứng chỉ tiếng Anh', 'English certificate'], type: 'select', required: true, placeholder: ['Chọn chứng chỉ', 'Select a certificate'],
           options: [
             { v: 'ielts', label: 'IELTS Academic' },
-            { v: 'toefl', label: 'TOEFL iBT' },
+            { v: 'toefl', label: ['TOEFL iBT (thang 0–120)', 'TOEFL iBT (0–120 scale)'] },
+            { v: 'toefl26', label: ['TOEFL iBT (thang 1–6, từ 2026)', 'TOEFL iBT (1–6 scale, from 2026)'] },
             { v: 'pte', label: 'PTE Academic' },
             { v: 'vstep', label: 'VSTEP' },
             { v: 'peic', label: 'PEIC (Pearson English International Certificate)' },
@@ -478,8 +480,7 @@
             { v: 'none', label: ['Chưa thi', 'Not yet taken'] },
           ],
         },
-        { code: 'S05', width: 'half', label: ['Điểm tổng (Overall)', 'Overall score'], type: 'number', required: true, show: () => hasCert() && !!sc().overall, help: () => hasCert() && sc().overall ? rangeText(sc().overall) : '', validate: overallRule,
-          dyn: v => { const n = parseNum(v); return hasCert() && sc().band && !scoreRule(v) && !isNaN(n) ? `<span class="wmba-hint">${tx(['Tương đương', 'Equivalent to'])} <b>${tx(sc().band(n))}</b></span>` : ''; } },
+        { code: 'S05', width: 'half', label: ['Điểm tổng (Overall)', 'Overall score'], type: 'number', required: true, show: () => hasCert() && !!sc().overall, help: () => hasCert() && sc().overall ? rangeText(sc().overall) : '', validate: overallRule },
         { code: 'S09', width: 'half', label: ['Trình độ (CEFR)', 'CEFR level'], type: 'select', required: true, options: () => hasCert() && sc().levels || [], placeholder: ['Chọn trình độ', 'Select a level'], show: () => hasCert() && !!sc().levels, validate: inOptions },
         { code: 'S10', width: 'half', label: ['Xếp loại', 'Result'], type: 'select', required: true, options: () => hasCert() && sc().grades || [], placeholder: ['Chọn xếp loại', 'Select a result'], show: () => hasCert() && !!sc().grades, validate: inOptions },
         {
@@ -525,7 +526,7 @@
         },
         { code: 'W02', width: 'half', label: ['Tổng số năm kinh nghiệm', 'Total years of work experience'], type: 'number', required: true, validate: yearsRule, dyn: yearsHint('all') },
         {
-          code: 'W03', width: 'half', label: ['Tổng số năm quản lý', 'Total years in management roles'], type: 'number', required: true, help: ['Từ cấp Leader trở lên.', 'Leader level and above.'],
+          code: 'W03', width: 'half', label: ['Tổng số năm quản lý', 'Total years in management roles'], type: 'number', required: true,
           validate: v => yearsRule(v) || (parseNum(v) > parseNum(state.W02) ? ['Số năm quản lý không vượt tổng số năm kinh nghiệm', 'Years in management cannot exceed your total years of experience.'] : ''), dyn: yearsHint('mgmt'),
         },
       ],
@@ -1137,7 +1138,7 @@
   function reviewSections(editable) {
     return STEPS.map((s, i) => {
       const n = editable ? issuesFor(i) : 0;
-      const badge = editable ? (n ? `<span class="wmba-badge is-err">${tf(['{n} mục cần bổ sung', '{n} to fix'], { n })}</span>` : `<span class="wmba-badge is-ok">${tx(['Đầy đủ', 'Complete'])}</span>`) : '';
+      const badge = editable ? (n ? `<span class="wmba-badge is-err">${tf(['{n} mục cần bổ sung', '{n} to fix'], { n })}</span>` : `<span class="wmba-badge is-ok">${tx(['Đầy đủ', 'Completed'])}</span>`) : '';
       const body = i === STEPS.length - 1 ? reviewDocs() : reviewRows(s.fields, state, '');
       return `<section class="wmba-rv-sec">
         <header><h3>${i + 1}. ${esc(tx(s.title))}${badge}</h3>${editable ? `<button type="button" data-action="edit" data-step="${i}">${tx(['Sửa', 'Edit'])}</button>` : ''}</header>
@@ -1467,17 +1468,23 @@
     input.setAttribute('aria-activedescendant', li.id);
     li.scrollIntoView({ block: 'nearest' });
   }
-  const CHILDREN = { A04: ['A02', 'A05'], A02: ['A05'] };
+  const CHILDREN = { A04: ['A02', 'A05'], A02: ['A05'], S03: ['S05', 'S06', 'S09', 'S10'] };   // đổi chứng chỉ → nhập lại điểm và bậc
   let pointerDown = false, pendingRedraw = null;
   document.addEventListener('pointerdown', () => { pointerDown = true; }, true);
   document.addEventListener('pointerup', () => {
     pointerDown = false;
     if (pendingRedraw) { const r = pendingRedraw; pendingRedraw = null; setTimeout(r); }
   }, true);
+  function clearChildren(path) {
+    (CHILDREN[path] || []).forEach(k => {
+      state[k] = typeof state[k] === 'object' ? { L: '', R: '', W: '', S: '' } : '';   // S06 là nhóm 4 kỹ năng
+      Object.keys(errors).forEach(e => { if (e === k || e.startsWith(k + '.')) delete errors[e]; });
+    });
+  }
   function cascade(path, before, sync) {
     const entry = renderIndex.get(path);   // rerender: field điều kiện phụ thuộc combo này (vd. Major = Other)
     if ((!CHILDREN[path] && !(entry && entry.f.rerender)) || getPath(state, path) === before) return;
-    (CHILDREN[path] || []).forEach(k => { state[k] = ''; delete errors[k]; });
+    clearChildren(path);
     const redraw = () => {
       const a = document.activeElement, keep = a && mainEl.contains(a) && a.id;
       const y = window.scrollY;
@@ -1745,6 +1752,7 @@
         const entry = renderIndex.get(path);
         if (entry) { const m = check(entry); m ? errors[path] = m : delete errors[path]; }
       }
+      clearChildren(path);
       rerenderKeepFocus(el);   // field điều kiện (S03, Hiện tại, Khác…) hiện/ẩn ngay
       scheduleSave();
     });
